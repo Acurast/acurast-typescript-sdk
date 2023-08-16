@@ -1,0 +1,23 @@
+{
+  "name": "acurast-typescript-sdk",
+  "version": "1.0.0",
+  "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.52.0",
+    "eslint": "^8.0.1",
+    "eslint-config-standard-with-typescript": "^37.0.0",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-n": "^15.0.0 || ^16.0.0 ",
+    "eslint-plugin-promise": "^6.0.0",
+    "lerna": "^7.1.5",
+    "ts-loader": "^9.4.4",
+    "typescript": "*",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
+  }
+}
