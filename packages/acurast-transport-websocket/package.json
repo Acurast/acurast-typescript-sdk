@@ -1,0 +1,39 @@
+{
+  "name": "@acurast/transport-websocket",
+  "version": "1.0.0-beta.1",
+  "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
+  "license": "ISC",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    "browser": "./dist/esm/index.browser.js",
+    "import": "./dist/esm/index.node.js",
+    "require": "./dist/cjs/index.node.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist && tsc && tsc -p tsconfig.cjs.json",
+    "test": "TS_NODE_PROJECT=\"tests/tsconfig.json\" mocha -r ts-node/register \"tests/specs/**/*.spec.ts\"",
+    "test:ci": "nyc -r lcov -e .ts -x \"*.spec.ts\" yarn test"
+  },
+  "dependencies": {
+    "@stablelib/random": "^1.0.2",
+    "@stablelib/sha256": "^1.0.1",
+    "buffer": "^6.0.3",
+    "elliptic": "^6.5.4",
+    "tslib": "^2.6.1"
+  },
+  "peerDependencies": {
+    "ws": "^8.13.0"
+  },
+  "peerDependenciesMeta": {
+    "ws": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/elliptic": "^6.4.14",
+    "@types/ws": "^8.5.5"
+  }
+}

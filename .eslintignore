@@ -1,0 +1,9 @@
+.idea
+.history
+.dockerignore
+.gitignore
+.prettierignore
+.prettierrc
+.eslintrc.js
+dist
+node_modules
