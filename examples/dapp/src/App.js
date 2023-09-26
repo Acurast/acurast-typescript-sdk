@@ -1,19 +1,53 @@
 import { AcurastClient } from '@acurast/dapp'
+import { json } from '@codemirror/lang-json'
+import { packData, unpackData } from '@taquito/michel-codec'
+import { b58cencode } from '@taquito/utils'
+import CodeMirror from '@uiw/react-codemirror'
+import axios from 'axios'
+import { Oval } from 'react-loader-spinner'
 
 import './App.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const DEV_WSS = 'wss://websocket-proxy.dev.gke.papers.tech/'
 const LOCAL_WSS = 'ws://localhost:9001/'
 
+const TEZOS_NODE = 'https://tezos-ghostnet-node.prod.gke.papers.tech'
+const CONTRACT = 'KT1Uv2DzUiDBNL4znvAVp8ozyHdynEeKV3rL'
+
+const FAKE_SOURCE = 'tz1Mj7RzPmMAqDUNFBn5t5VbXmWW4cSUAdtT'
+const FAKE_SIGNATURE = 'edsigtkpiSSschcaCt9pUVrpNPf7TTcgvgDEDD6NCEHMy8NNQJCGnMfLZzYoQj74yLjo9wx6MPVV29CvVzgi7qEcEUok3k7AuMg'
+
+const DEFAULT_PAYLOAD = {
+  prim: 'Pair',
+  args: [
+      { string: 'BTCUSDT' },
+      { int: 1000 }
+  ]
+}
+
+const MESSAGE_STATUS = {
+  loading: 'loading',
+  verified: 'verified',
+  invalidSignature: 'invalid_signature',
+  error: 'error'
+}
+
 function App() {
   const acurastClient = useMemo(() => new AcurastClient(DEV_WSS), [])
 
+  const recipientInputRef = useRef()
+
   const [id, setId] = useState()
   const [keyPair, setKeyPair] = useState()
+
+  const [payload, setPayload] = useState(JSON.stringify(DEFAULT_PAYLOAD))
+
   const [message, setMessage] = useState()
-  const [recipient, setRecipient] = useState()
-  const [payload, setPayload] = useState()
+  const [payloadData, setPayloadData] = useState()
+  const [signature, setSignature] = useState()
+  const [publicKey, setPublicKey] = useState()
+  const [messageStatus, setMessageStatus] = useState()
 
   useEffect(() => {
     const init = async () => {
@@ -44,13 +78,13 @@ function App() {
     init()
   }, [acurastClient])
 
-  const onRecipientInput = (event) => {
-    setRecipient(event.target.value)
+  const recipient = () => {
+    return recipientInputRef.current.value
   }
 
-  const onPayloadInput = (event) => {
-    setPayload(event.target.value)
-  }
+  const onPayloadInput = useCallback((value) => {
+    setPayload(value)
+  }, [])
 
   const open = async () => {
     await acurastClient.start({ 
@@ -59,11 +93,49 @@ function App() {
     })
 
     acurastClient.onMessage((message) => {
+      const messagePayload = unpackData(message.payload)
+  
       setMessage({
         sender: Buffer.from(message.sender).toString('hex'),
         recipient: Buffer.from(message.recipient).toString('hex'),
-        payload: Buffer.from(message.payload).toString('hex')
+        payload: messagePayload
       })
+  
+      const payloadData = Buffer.from(
+        packData([messagePayload.args[0][0]], {
+          prim: 'list',
+          args: [
+            {
+              prim: 'pair',
+              args: [
+                {
+                  prim: 'timestamp'
+                },
+                {
+                  prim: 'pair',
+                  args: [
+                    {
+                      prim: 'string'
+                    },
+                    {
+                      prim: 'int'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })
+      ).toString('hex')
+      setPayloadData(payloadData)
+  
+      const publicKey = b58cencode(recipient(), new Uint8Array([3, 178, 139, 127]))
+      setPublicKey(publicKey)
+  
+      const signature = messagePayload.args[1].string
+      setSignature(signature)
+  
+      verify(payloadData, publicKey, signature)
     })
   }
 
@@ -72,7 +144,72 @@ function App() {
   }
 
   const send = () => {
-    acurastClient.send(recipient, payload)
+    const packedPayload = Buffer.from(packData(JSON.parse(payload)))
+    acurastClient.send(recipient(), packedPayload)
+  }
+
+  const verify = async (payloadData, publicKey, signature) => {
+    setMessageStatus(MESSAGE_STATUS.loading)
+    const source = FAKE_SOURCE
+
+    try {
+      const { data: block } = await axios.get(`${TEZOS_NODE}/chains/main/blocks/head/header`)
+      const { data: counter } = await axios.get(`${TEZOS_NODE}/chains/main/blocks/head/context/contracts/${source}/counter`)
+  
+      const { data } = await axios.post(`${TEZOS_NODE}/chains/main/blocks/head/helpers/scripts/run_operation`, {
+        chain_id: block.chain_id,
+        operation: {
+          branch: block.hash,
+          contents: [
+            {
+              kind: 'transaction',
+              fee: '0',
+              gas_limit: '1040000',
+              storage_limit: '60000',
+              amount: '0',
+              destination: CONTRACT,
+              source: source,
+              counter: `${parseInt(counter, 10) + 1}`,
+              parameters: {
+                entrypoint: 'fulfill',
+                value: {
+                  prim: 'Pair',
+                  args: [
+                    {
+                      bytes: payloadData
+                    },
+                    [
+                      {
+                        prim: 'Pair',
+                        args: [
+                          {
+                            string: publicKey
+                          },
+                          {
+                            bytes: signature
+                          }
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ],
+          signature: FAKE_SIGNATURE
+        }
+      })
+
+      setMessageStatus(data.contents[0].metadata.operation_result.status === 'applied' 
+        ? MESSAGE_STATUS.verified 
+        : data.contents[0].metadata.operation_result.status === 'failed' && data.contents[0].metadata.operation_result.errors.find((err) => err.with?.string === 'InvalidSignature')
+        ? MESSAGE_STATUS.invalidSignature
+        : MESSAGE_STATUS.error
+      )
+    } catch (error) {
+      setMessageStatus(MESSAGE_STATUS.error)
+      console.warn(error)
+    }
   }
 
   const clear = () => {
@@ -94,19 +231,67 @@ function App() {
       <br /><br />
       <div>
         <span>Recipient</span>
-        <input type="text" onChange={onRecipientInput}></input>
+        <input type="text" ref={recipientInputRef}></input>
       </div>
       <div>
         <span>Payload</span>
-        <input type="text" onChange={onPayloadInput}></input>
+        <CodeMirror
+          value={JSON.stringify(DEFAULT_PAYLOAD, null, 2)}
+          height='250px'
+          theme='dark'
+          extensions={[json()]}
+          basicSetup={{
+            lineNumbers: false,
+            highlightActiveLine: false
+          }}
+          onChange={onPayloadInput}
+        />
+        <br />
       </div>
       <button onClick={send}>Send</button>
       <br /><br />
       ---
       <br /><br />
       <button onClick={clear}>Clear</button>
-      <div>Message:</div>
-      <div className='multiline'>{message ? JSON.stringify(message, null, 2) : '<empty>'}</div>
+      <div>
+        <span>Message: </span>
+        {messageStatus === MESSAGE_STATUS.loading && <Oval
+          height={20}
+          width={20}
+          wrapperStyle={{
+            display: 'inline-block'
+          }}
+        />}
+        {messageStatus === MESSAGE_STATUS.verified && <span>✅</span>}
+        {messageStatus === MESSAGE_STATUS.invalidSignature && <span>❌</span>}
+        {messageStatus === MESSAGE_STATUS.error && <span>⚠️</span>}
+      </div>
+      <br />
+      <div>
+        <span>Payload Data: </span>
+        <span>{payloadData ? payloadData : '---'}</span>
+      </div>
+      <div>
+        <span>Public Key: </span>
+        <span>{publicKey ? publicKey : '---'}</span>
+      </div>
+      <div>
+        <span>Signature: </span>
+        <span>{signature ? signature : '---'}</span>
+      </div>
+      <br />
+      <span>Raw: </span>
+      <CodeMirror
+          value={message ? JSON.stringify(message, null, 2) : '{}'}
+          height={message ? '250px' : '50px'}
+          theme='dark'
+          extensions={[json()]}
+          editable={false}
+          basicSetup={{
+            lineNumbers: false,
+            highlightActiveLine: false
+          }}
+        />
     </div>
   );
 }
