@@ -1,7 +1,7 @@
 import { type WebSocketTransportClient as AbstractWebSocketTransportClient } from './client/client'
 
 export declare class WebSocketTransportClient extends AbstractWebSocketTransportClient {
-  public constructor(url: string, connectionTimeout: number)
+  public constructor(url: string, connectionTimeoutMillis: number)
 }
 
 export { type Message } from './message/messages'
