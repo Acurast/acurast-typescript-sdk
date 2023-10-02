@@ -22,7 +22,7 @@ const DEFAULT_PAYLOAD = {
   prim: 'Pair',
   args: [
       { string: 'BTCUSDT' },
-      { int: 1000 }
+      { int: "26245000000" }
   ]
 }
 
@@ -214,6 +214,10 @@ function App() {
 
   const clear = () => {
     setMessage(undefined)
+    setMessageStatus(undefined)
+    setPayloadData(undefined)
+    setPublicKey(undefined)
+    setSignature(undefined)
   }
 
   return (
