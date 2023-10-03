@@ -4,12 +4,9 @@
     "module": "ES6",
     "moduleResolution": "node",
     "baseUrl": "./",
-    "typeRoots": ["./node_modules/@types"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist/esm",
-    "importHelpers": true,
     "stripInternal": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -30,6 +27,10 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@acurast/transport-websocket": ["./pacakges/acurast-transport-websocket/src"],
+      "@acurast/transport-websocket/*": ["./pacakges/acurast-transport-websocket/src"]
+    }
   }
 }
