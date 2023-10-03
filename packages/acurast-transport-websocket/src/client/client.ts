@@ -18,7 +18,7 @@ export abstract class WebSocketTransportClient {
   
   protected constructor(
     private readonly url: string,
-    private readonly connectionTimeout: number,
+    private readonly connectionTimeoutMillis: number,
     private readonly session: WebSocketSession,
     private readonly crypto: Crypto = new Crypto,
   ) {}
@@ -58,7 +58,7 @@ export abstract class WebSocketTransportClient {
     const action: ProcessorAction | undefined = await processor.init()
     await this.onAction(action)
 
-    await timeoutPromise(this.connectionTimeout, this.isConnected.promise).catch(() => { throw new Error(`The connection with ${this.url} could not be established.`) })
+    await timeoutPromise(this.connectionTimeoutMillis, this.isConnected.promise).catch(() => { throw new Error(`The connection with ${this.url} could not be established.`) })
 
     this.log('Connected')
   }
