@@ -4,10 +4,10 @@ A TypeScript library to interact with the Acurast network.
 
 ## Packages
 
-| Name                             | Description                                              |
-| -------------------------------- | -------------------------------------------------------- |
-| [@acurast/dapp]()                | Tools useful in dApp development                         |
-| [@acurast/transport-websocket]() | An implementation of the Acurast P2P WebSocket Transport |
+| Name                                                                   | Description                                              |
+| ---------------------------------------------------------------------- | -------------------------------------------------------- |
+| [@acurast/dapp](./packages/acurast-dapp/)                               | Tools useful in dApp development                         |
+| [@acurast/transport-websocket](./packages/acurast-transport-websocket/) | An implementation of the Acurast P2P WebSocket Transport |
 
 ## Usage
 
@@ -40,4 +40,4 @@ await acurastClient.send(
 
 ### Other
 
-Navigate to a specific package, or see [`examples`]() for detailed instructions on how to use the library.
+Navigate to a specific package, or see [`examples`](./examples/) for detailed instructions on how to use the library.

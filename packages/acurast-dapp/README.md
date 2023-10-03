@@ -100,4 +100,4 @@ await acurastClient.send(
 
 ### Example
 
-See the [example dApp]().
+See the [example dApp](../../examples/dapp/).
