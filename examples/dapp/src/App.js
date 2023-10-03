@@ -26,6 +26,11 @@ const DEFAULT_PAYLOAD = {
   ]
 }
 
+const PAYLOAD_TYPE = {
+  raw: 'raw',
+  micheline: 'micheline'
+}
+
 const MESSAGE_STATUS = {
   loading: 'loading',
   verified: 'verified',
@@ -41,7 +46,9 @@ function App() {
   const [id, setId] = useState()
   const [keyPair, setKeyPair] = useState()
 
-  const [payload, setPayload] = useState(JSON.stringify(DEFAULT_PAYLOAD))
+  const [michelinePayload, setMichelinePayload] = useState(JSON.stringify(DEFAULT_PAYLOAD))
+  const [rawPayload, setRawPayload] = useState()
+  const [payloadType, setPayloadType] = useState(PAYLOAD_TYPE.micheline)
 
   const [message, setMessage] = useState()
   const [payloadData, setPayloadData] = useState()
@@ -82,8 +89,17 @@ function App() {
     return recipientInputRef.current.value
   }
 
-  const onPayloadInput = useCallback((value) => {
-    setPayload(value)
+  const onMichelinePayloadInput = useCallback((value) => {
+    setMichelinePayload(value)
+  }, [])
+
+  const onRawPayloadInput = useCallback((event) => {
+    setRawPayload(event.target.value)
+  }, [])
+
+  const onPayloadTypeSelected = useCallback((event) => {
+    setPayloadType(event.target.value)
+    clear()
   }, [])
 
   const open = async () => {
@@ -93,49 +109,62 @@ function App() {
     })
 
     acurastClient.onMessage((message) => {
-      const messagePayload = unpackData(message.payload)
+      let messagePayload
+      try {
+        messagePayload = {
+          type: PAYLOAD_TYPE.micheline,
+          data: unpackData(message.payload)
+        }
+      } catch {
+        messagePayload = {
+          type: PAYLOAD_TYPE.raw,
+          data: Buffer.from(message.payload).toString('hex')
+        }
+      }
   
       setMessage({
         sender: Buffer.from(message.sender).toString('hex'),
         recipient: Buffer.from(message.recipient).toString('hex'),
-        payload: messagePayload
+        payload: messagePayload.data
       })
   
-      const payloadData = Buffer.from(
-        packData([messagePayload.args[0][0]], {
-          prim: 'list',
-          args: [
-            {
-              prim: 'pair',
-              args: [
-                {
-                  prim: 'timestamp'
-                },
-                {
-                  prim: 'pair',
-                  args: [
-                    {
-                      prim: 'string'
-                    },
-                    {
-                      prim: 'int'
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        })
-      ).toString('hex')
-      setPayloadData(payloadData)
-  
-      const publicKey = b58cencode(recipient(), new Uint8Array([3, 178, 139, 127]))
-      setPublicKey(publicKey)
-  
-      const signature = messagePayload.args[1].string
-      setSignature(signature)
-  
-      verify(payloadData, publicKey, signature)
+      if (messagePayload.type === PAYLOAD_TYPE.micheline) {
+        const payloadData = Buffer.from(
+          packData([messagePayload.data.args[0][0]], {
+            prim: 'list',
+            args: [
+              {
+                prim: 'pair',
+                args: [
+                  {
+                    prim: 'timestamp'
+                  },
+                  {
+                    prim: 'pair',
+                    args: [
+                      {
+                        prim: 'string'
+                      },
+                      {
+                        prim: 'int'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          })
+        ).toString('hex')
+        setPayloadData(payloadData)
+    
+        const publicKey = b58cencode(recipient(), new Uint8Array([3, 178, 139, 127]))
+        setPublicKey(publicKey)
+    
+        const signature = messagePayload.data.args[1].string
+        setSignature(signature)
+    
+        verify(payloadData, publicKey, signature)
+      }
     })
   }
 
@@ -144,8 +173,8 @@ function App() {
   }
 
   const send = () => {
-    const packedPayload = Buffer.from(packData(JSON.parse(payload)))
-    acurastClient.send(recipient(), packedPayload)
+    const _payload = payloadType === PAYLOAD_TYPE.micheline ? Buffer.from(packData(JSON.parse(michelinePayload))) : rawPayload
+    acurastClient.send(recipient(), _payload)
   }
 
   const verify = async (payloadData, publicKey, signature) => {
@@ -239,17 +268,26 @@ function App() {
       </div>
       <div>
         <span>Payload</span>
-        <CodeMirror
-          value={JSON.stringify(DEFAULT_PAYLOAD, null, 2)}
-          height='250px'
-          theme='dark'
-          extensions={[json()]}
-          basicSetup={{
-            lineNumbers: false,
-            highlightActiveLine: false
-          }}
-          onChange={onPayloadInput}
-        />
+        <div onChange={onPayloadTypeSelected}>
+          <input type='radio' value={PAYLOAD_TYPE.micheline} checked={payloadType === PAYLOAD_TYPE.micheline} /> Micheline
+          <input type='radio' value={PAYLOAD_TYPE.raw} checked={payloadType === PAYLOAD_TYPE.raw} /> Raw
+        </div>
+        {payloadType === PAYLOAD_TYPE.micheline && (
+          <CodeMirror
+            value={JSON.stringify(DEFAULT_PAYLOAD, null, 2)}
+            height='250px'
+            theme='dark'
+            extensions={[json()]}
+            basicSetup={{
+              lineNumbers: false,
+              highlightActiveLine: false
+            }}
+            onChange={onMichelinePayloadInput}
+          />
+        )}
+        {payloadType === PAYLOAD_TYPE.raw && (
+          <input type="text" onChange={onRawPayloadInput}></input>
+        )}
         <br />
       </div>
       <button onClick={send}>Send</button>
@@ -271,20 +309,19 @@ function App() {
         {messageStatus === MESSAGE_STATUS.error && <span>⚠️</span>}
       </div>
       <br />
-      <div>
+      {payloadType === PAYLOAD_TYPE.micheline && <div>
         <span>Payload Data: </span>
         <span>{payloadData ? payloadData : '---'}</span>
-      </div>
-      <div>
+      </div>}
+      {payloadType === PAYLOAD_TYPE.micheline && <div>
         <span>Public Key: </span>
         <span>{publicKey ? publicKey : '---'}</span>
-      </div>
-      <div>
+      </div>}
+      {payloadType === PAYLOAD_TYPE.micheline && <div>
         <span>Signature: </span>
         <span>{signature ? signature : '---'}</span>
-      </div>
-      <br />
-      <span>Raw: </span>
+      </div>}
+      {payloadType === PAYLOAD_TYPE.micheline && <><br /><span>Raw: </span></>}
       <CodeMirror
           value={message ? JSON.stringify(message, null, 2) : '{}'}
           height={message ? '250px' : '50px'}
