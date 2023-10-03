@@ -24,4 +24,4 @@ $ docker build -t <tag> -f Dockerfile ../../
 $ docker run -p <port>:3000 <tag>
 ```
 
-And open http://localhost:\<port> to view it in your browser.
+And open http://localhost:<port\> to view it in your browser.
