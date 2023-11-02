@@ -20,14 +20,14 @@ export class AcurastClient {
 
   private messageListenerBuffer: MessageListener[] = []
 
-  public constructor(private readonly url: string, private readonly connectionTimeout: number = CONNECTION_TIMEOUT_MS) {}
+  public constructor(private readonly url: string, private readonly connectionTimeoutMillis: number = CONNECTION_TIMEOUT_MS) {}
 
   public async start(keyPair: KeyPair): Promise<void> {
     if (this._transport !== undefined) {
       return
     }
 
-    const transport = new WebSocketTransportClient(this.url, this.connectionTimeout)
+    const transport = new WebSocketTransportClient(this.url, this.connectionTimeoutMillis)
     
     this.messageListenerBuffer.forEach((listener: MessageListener) => {
       transport.onMessage(listener)
@@ -50,8 +50,8 @@ export class AcurastClient {
     }
   }
 
-  public async send(publicKey: string | Uint8Array, payload: string | Uint8Array): Promise<void> {
-    await this.transport.send(uint8ArrayFrom(publicKey), uint8ArrayFrom(payload))
+  public async send(publicKeyOrSenderId: string | Uint8Array, payload: string | Uint8Array): Promise<void> {
+    await this.transport.send(uint8ArrayFrom(publicKeyOrSenderId), uint8ArrayFrom(payload))
   }
 
   public async close(): Promise<void> {

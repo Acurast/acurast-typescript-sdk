@@ -18,7 +18,7 @@ export abstract class WebSocketTransportClient {
   
   protected constructor(
     private readonly url: string,
-    private readonly connectionTimeout: number,
+    private readonly connectionTimeoutMillis: number,
     private readonly session: WebSocketSession,
     private readonly crypto: Crypto = new Crypto,
   ) {}
@@ -58,23 +58,23 @@ export abstract class WebSocketTransportClient {
     const action: ProcessorAction | undefined = await processor.init()
     await this.onAction(action)
 
-    await timeoutPromise(this.connectionTimeout, this.isConnected.promise).catch(() => { throw new Error(`The connection with ${this.url} could not be established.`) })
+    await timeoutPromise(this.connectionTimeoutMillis, this.isConnected.promise).catch(() => { throw new Error(`The connection with ${this.url} could not be established.`) })
 
     this.log('Connected')
   }
 
-  public async send(publicKey: Uint8Array, payload: Uint8Array): Promise<void> {
+  public async send(publicKeyOrSenderId: Uint8Array, payload: Uint8Array): Promise<void> {
     const processor: MessageProcessor | undefined = this.messageProcessors[this.version]
     if (processor === undefined) {
       return
     }
 
-    const recipient: Uint8Array = this.senderId(publicKey)
+    const recipient: Uint8Array = this.senderId(publicKeyOrSenderId)
     const message: Message = await processor.prepareMessage(recipient, payload)
 
     await this.session.send(message)
 
-    this.log('Sent', payload, 'to', publicKey)
+    this.log('Sent payload', 'Sent', payload, 'to', publicKeyOrSenderId)
   }
   
   public onMessage(listener: MessageListener): void {
@@ -114,12 +114,15 @@ export abstract class WebSocketTransportClient {
     })
   }
 
-  private senderId(publicKey: Uint8Array): Uint8Array {
-    const pkh = this.crypto.sha256(publicKey)
+  private senderId(publicKeyOrSenderId: Uint8Array): Uint8Array {
+    if (publicKeyOrSenderId.length === 16) {
+      return publicKeyOrSenderId
+    }
+    const pkh = this.crypto.sha256(publicKeyOrSenderId)
     return pkh.slice(0, 16)
   }
 
-  private log(...data: any[]): void {
-    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.url}]`, ...data)
+  private log(event: string, ...data: any[]): void {
+    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.url}] ${event}`, ...data)
   }
 }

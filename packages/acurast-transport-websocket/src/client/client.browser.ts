@@ -50,7 +50,7 @@ class BrowserWebSocketSession extends WebSocketSession {
 }
 
 export class BrowserWebSocketTransportClient extends WebSocketTransportClient {
-  public constructor(url: string, connectionTimeout: number) {
-    super(url, connectionTimeout, new BrowserWebSocketSession())
+  public constructor(url: string, connectionTimeoutMillis: number) {
+    super(url, connectionTimeoutMillis, new BrowserWebSocketSession())
   }
 }
