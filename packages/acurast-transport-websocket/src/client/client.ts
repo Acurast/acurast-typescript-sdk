@@ -74,7 +74,7 @@ export abstract class WebSocketTransportClient {
 
     await this.session.send(message)
 
-    this.log('Sent', payload, 'to', publicKeyOrSenderId)
+    this.log('Sent payload', 'Sent', payload, 'to', publicKeyOrSenderId)
   }
   
   public onMessage(listener: MessageListener): void {
@@ -122,7 +122,7 @@ export abstract class WebSocketTransportClient {
     return pkh.slice(0, 16)
   }
 
-  private log(...data: any[]): void {
-    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.url}]`, ...data)
+  private log(event: string, ...data: any[]): void {
+    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.url}] ${event}`, ...data)
   }
 }
