@@ -50,8 +50,8 @@ export class AcurastClient {
     }
   }
 
-  public async send(publicKey: string | Uint8Array, payload: string | Uint8Array): Promise<void> {
-    await this.transport.send(uint8ArrayFrom(publicKey), uint8ArrayFrom(payload))
+  public async send(publicKeyOrSenderId: string | Uint8Array, payload: string | Uint8Array): Promise<void> {
+    await this.transport.send(uint8ArrayFrom(publicKeyOrSenderId), uint8ArrayFrom(payload))
   }
 
   public async close(): Promise<void> {
