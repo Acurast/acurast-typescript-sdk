@@ -8,6 +8,7 @@ import { V1MessageProcessor } from './processor/v1-message.processor'
 import { Deferred } from '../utils/deferred'
 import { log } from '../utils/log'
 import { timeoutPromise } from '../utils/promise'
+import { PayloadMessage } from '../index.browser'
 
 export abstract class WebSocketTransportClient {
   private readonly version = 1 // Somehow get the highest supported version of the counterparty?
@@ -41,7 +42,11 @@ export abstract class WebSocketTransportClient {
     }
 
     this.session.onMessage(async (message: Message) => {
-      this.log('Got message', message)
+      this.log(
+        'Got message', message.type !== 'payload' ? message : {
+        ...message,
+        payload: (message as PayloadMessage).payload.slice(0, this.maxPayloadLogLength)
+      })
       const processor: MessageProcessor | undefined = this.messageProcessors[message.version]
       if (processor === undefined) {
         return
