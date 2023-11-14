@@ -1,6 +1,6 @@
 {
   "name": "@acurast/transport-websocket",
-  "version": "1.0.0",
+  "version": "1.0.1-beta.0",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "ISC",
   "types": "./dist/esm/index.d.ts",

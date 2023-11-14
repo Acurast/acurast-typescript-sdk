@@ -21,6 +21,7 @@ export abstract class WebSocketTransportClient {
     private readonly connectionTimeoutMillis: number,
     private readonly session: WebSocketSession,
     private readonly crypto: Crypto = new Crypto,
+    private readonly maxPayloadLogLength: number = 100,
   ) {}
 
   public async connect(keyPair: KeyPair): Promise<void> {
@@ -74,7 +75,7 @@ export abstract class WebSocketTransportClient {
 
     await this.session.send(message)
 
-    this.log('Sent payload', 'Sent', payload, 'to', publicKeyOrSenderId)
+    this.log('Sent payload', 'Sent', payload.slice(0, this.maxPayloadLogLength), 'to', publicKeyOrSenderId)
   }
   
   public onMessage(listener: MessageListener): void {
