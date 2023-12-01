@@ -59,7 +59,7 @@ class NodeWebSocketSession extends WebSocketSession {
 }
 
 export class NodeWebSocketTransportClient extends WebSocketTransportClient {
-  public constructor(url: string, connectionTimeoutMillis: number) {
-    super(url, connectionTimeoutMillis, new NodeWebSocketSession())
+  public constructor(url: string, connectionTimeoutMillis: number, maxPayloadLogLength: number = 100) {
+    super(url, connectionTimeoutMillis, new NodeWebSocketSession(), undefined, maxPayloadLogLength)
   }
 }
