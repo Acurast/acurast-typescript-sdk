@@ -80,7 +80,7 @@ export abstract class WebSocketTransportClient {
 
     await this.session.send(message)
 
-    this.log('Sent payload', 'Sent', payload.slice(0, this.maxPayloadLogLength), 'to', publicKeyOrSenderId)
+    this.log('Sent payload', 'Sent', this.maxPayloadLogLength > 0 ? payload.slice(0, this.maxPayloadLogLength) : payload, 'to', publicKeyOrSenderId)
   }
   
   public onMessage(listener: MessageListener): void {
