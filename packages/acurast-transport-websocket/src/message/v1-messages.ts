@@ -5,17 +5,26 @@ interface V1BaseMessage<T extends string> extends BaseMessage<1> {
   type: T
 }
 
-export interface InitMessage extends V1BaseMessage<'init'> {}
+export type Permissions = {
+  allowList: Uint8Array[]
+  denyList: Uint8Array[]
+}
+
+export interface InitMessage extends V1BaseMessage<'init'> {
+  permissions?: Permissions
+}
 
 export function createInitMessage(
   sender: Uint8Array,
-  recipient: Uint8Array = EMPTY_ADDRESS
+  recipient: Uint8Array = EMPTY_ADDRESS,
+  permissions?: Permissions
 ): InitMessage {
   return {
     version: 1,
     type: 'init',
     sender,
-    recipient
+    recipient,
+    permissions,
   }
 }
 
@@ -105,7 +114,7 @@ export type V1Message =
   | ResponseMessage
   | AcceptedMessage
   | PayloadMessage
-  
+
 export const V1MessageCode: Record<V1Message['type'], number> = {
   init: 0x00,
   challenge: 0x01,

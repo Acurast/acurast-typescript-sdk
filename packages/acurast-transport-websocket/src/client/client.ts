@@ -35,7 +35,7 @@ export abstract class WebSocketTransportClient {
       publicKey: this.crypto.compressP256PublicKey(keyPair.publicKey)
     }
 
-    const sender = this.senderId(normalizedKeyPair.publicKey)
+    const sender = this.crypto.senderId(normalizedKeyPair.publicKey)
 
     this.messageProcessors = {
       1: new V1MessageProcessor(sender, this.crypto)
@@ -75,7 +75,7 @@ export abstract class WebSocketTransportClient {
       return
     }
 
-    const recipient: Uint8Array = this.senderId(publicKeyOrSenderId)
+    const recipient: Uint8Array = this.crypto.senderId(publicKeyOrSenderId)
     const message: Message = await processor.prepareMessage(recipient, payload)
 
     await this.session.send(message)
@@ -118,14 +118,6 @@ export abstract class WebSocketTransportClient {
     this.messageListeners.forEach((listener: MessageListener) => {
       void listener(action.message)
     })
-  }
-
-  private senderId(publicKeyOrSenderId: Uint8Array): Uint8Array {
-    if (publicKeyOrSenderId.length === 16) {
-      return publicKeyOrSenderId
-    }
-    const pkh = this.crypto.sha256(publicKeyOrSenderId)
-    return pkh.slice(0, 16)
   }
 
   private log(event: string, ...data: any[]): void {

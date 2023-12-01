@@ -11,6 +11,7 @@ export {
   type ResponseMessage,
   type AcceptedMessage,
   type PayloadMessage,
+  type Permissions,
   createInitMessage,
   createChallengeMessage,
   createResponseMessage,

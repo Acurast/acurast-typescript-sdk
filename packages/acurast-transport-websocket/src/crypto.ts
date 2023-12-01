@@ -29,4 +29,12 @@ export class Crypto {
       signature.s.toArrayLike(Buffer, 'be', 32)
     ])
   }
+
+  public senderId(publicKeyOrSenderId: Uint8Array): Uint8Array {
+    if (publicKeyOrSenderId.length === 16) {
+      return publicKeyOrSenderId
+    }
+    const pkh = this.sha256(publicKeyOrSenderId)
+    return pkh.slice(0, 16)
+  }
 }
