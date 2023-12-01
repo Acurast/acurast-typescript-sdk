@@ -5,26 +5,26 @@ interface V1BaseMessage<T extends string> extends BaseMessage<1> {
   type: T
 }
 
-export type Whitelist = {
+export type Permissions = {
   allowList: Uint8Array[]
   denyList: Uint8Array[]
 }
 
 export interface InitMessage extends V1BaseMessage<'init'> {
-  whitelist?: Whitelist
+  permissions?: Permissions
 }
 
 export function createInitMessage(
   sender: Uint8Array,
   recipient: Uint8Array = EMPTY_ADDRESS,
-  whitelist?: Whitelist
+  permissions?: Permissions
 ): InitMessage {
   return {
     version: 1,
     type: 'init',
     sender,
     recipient,
-    whitelist
+    permissions,
   }
 }
 
