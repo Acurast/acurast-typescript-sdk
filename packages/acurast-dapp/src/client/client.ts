@@ -58,4 +58,9 @@ export class AcurastClient {
     await this._transport?.close()
     this._transport = undefined
   }
+
+  public idFromPublicKey(publicKey: string | Uint8Array): string {
+    const id = this.transport.idFromPublicKey(uint8ArrayFrom(publicKey))
+    return Buffer.from(id).toString('hex')
+  }
 }
