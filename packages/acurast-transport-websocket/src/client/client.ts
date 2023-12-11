@@ -92,6 +92,10 @@ export abstract class WebSocketTransportClient {
     await this.session.close()
   }
 
+  public idFromPublicKey(publicKey: Uint8Array): Uint8Array {
+    return this.crypto.senderId(publicKey)
+  }
+
   private async onAction(action: ProcessorAction | undefined): Promise<void> {
     switch (action?.type) {
       case 'connected':
