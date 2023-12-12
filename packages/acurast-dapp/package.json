@@ -1,6 +1,6 @@
 {
   "name": "@acurast/dapp",
-  "version": "1.0.1-beta.4",
+  "version": "1.0.1-beta.5",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "ISC",
   "publishConfig": {
@@ -17,7 +17,7 @@
     "test:ci": "true"
   },
   "dependencies": {
-    "@acurast/transport-websocket": "^1.0.1-beta.4",
+    "@acurast/transport-websocket": "^1.0.1-beta.5",
     "buffer": "^6.0.3"
   }
 }
