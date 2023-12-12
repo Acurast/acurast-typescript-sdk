@@ -4,7 +4,7 @@ import './App.css'
 import { useEffect, useMemo, useState } from 'react'
 
 const DEV_WSS = 'wss://ws-1.ws-server-2.acurast.com/'
-const LOCAL_WSS = 'ws://localhost:54943/'
+const LOCAL_WSS = 'ws://localhost:9001/'
 
 function App() {
   const acurastClient = useMemo(
