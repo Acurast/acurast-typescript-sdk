@@ -22,17 +22,53 @@ export abstract class WebSocketTransportClient {
 
   private messageProcessors: Record<number, MessageProcessor> = {}
   private messageListeners: MessageListener[] = []
+  private lastSelectedURL: string | undefined
 
   protected constructor(
-    private readonly url: string,
+    private readonly urls: string[],
     private readonly connectionTimeoutMillis: number,
     private readonly session: WebSocketSession,
     private readonly crypto: Crypto = new Crypto(),
     private readonly maxPayloadLogLength: number = 100
   ) {}
 
+  private async tryConnectingToUrls(): Promise<void> {
+    let lastError: Error | null = null
+
+    // First, try to connect to lastSelectedURL if it's set
+    if (this.lastSelectedURL) {
+      try {
+        await this.session.open(this.lastSelectedURL)
+        this.log(`Connected to: ${this.lastSelectedURL}`)
+        return // Exit the function if connection is successful
+      } catch (error: any) {
+        this.log(`Failed to connect to: ${this.lastSelectedURL}`)
+        lastError = error
+      }
+    }
+
+    for (const url of this.urls) {
+      try {
+        this.lastSelectedURL = url
+        await this.session.open(url)
+        this.log(`Connected to ${url}`)
+        return
+      } catch (error: any) {
+        this.log(`Failed to connect to ${url}`)
+        lastError = error
+      }
+    }
+
+    // If this point is reached, all connections have failed
+    if (lastError) {
+      throw new Error(`All connections failed: ${lastError.message}`)
+    } else {
+      throw new Error('No URL provided.')
+    }
+  }
+
   public async connect(keyPair: KeyPair): Promise<void> {
-    await this.session.open(this.url)
+    await this.tryConnectingToUrls()
 
     this.log('Session opened')
 
@@ -84,7 +120,7 @@ export abstract class WebSocketTransportClient {
     await this.onAction(action)
 
     await timeoutPromise(this.connectionTimeoutMillis, this.isConnected.promise).catch(() => {
-      throw new Error(`The connection with ${this.url} could not be established.`)
+      throw new Error(`The connection with ${this.lastSelectedURL} could not be established.`)
     })
 
     this.log('Connected')
@@ -152,6 +188,6 @@ export abstract class WebSocketTransportClient {
   }
 
   private log(event: string, ...data: any[]): void {
-    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.url}] ${event}`, ...data)
+    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.lastSelectedURL}] ${event}`, ...data)
   }
 }

@@ -50,23 +50,22 @@ class BrowserWebSocketSession extends WebSocketSession {
   }
 
   override onClose(listener: Function): void {
-    this.ws.onclose = (event: any) => {
-      console.log('disconnected: ', event, listener)
+    this.ws.onclose = () => {
       this.ws.onopen = null
       this.ws.onerror = null
-      listener && listener()
+      listener()
     }
   }
 }
 
 export class BrowserWebSocketTransportClient extends WebSocketTransportClient {
   public constructor(
-    url: string,
+    urls: string[],
     connectionTimeoutMillis: number,
     maxPayloadLogLength: number = 100
   ) {
     super(
-      url,
+      urls,
       connectionTimeoutMillis,
       new BrowserWebSocketSession(),
       undefined,

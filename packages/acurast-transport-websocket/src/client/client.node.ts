@@ -59,21 +59,20 @@ class NodeWebSocketSession extends WebSocketSession {
   }
 
   override onClose(listener: Function): void {
-    this.ws.onclose = (event: any) => {
-      console.log('disconnected: ', event, listener)
+    this.ws.onclose = () => {
       this.ws.onopen = null
       this.ws.onerror = null
-      listener && listener()
+      listener()
     }
   }
 }
 
 export class NodeWebSocketTransportClient extends WebSocketTransportClient {
   public constructor(
-    url: string,
+    urls: string[],
     connectionTimeoutMillis: number,
     maxPayloadLogLength: number = 100
   ) {
-    super(url, connectionTimeoutMillis, new NodeWebSocketSession(), undefined, maxPayloadLogLength)
+    super(urls, connectionTimeoutMillis, new NodeWebSocketSession(), undefined, maxPayloadLogLength)
   }
 }
