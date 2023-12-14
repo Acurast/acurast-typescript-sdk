@@ -47,7 +47,9 @@ export abstract class WebSocketTransportClient {
       }
     }
 
-    for (const url of this.urls) {
+    const urls = this.urls.filter((url) => url !== this.lastSelectedURL)
+
+    for (const url of urls) {
       try {
         this.lastSelectedURL = url
         await this.session.open(url)
