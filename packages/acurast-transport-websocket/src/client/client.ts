@@ -29,7 +29,8 @@ export abstract class WebSocketTransportClient {
     private readonly connectionTimeoutMillis: number,
     private readonly session: WebSocketSession,
     private readonly crypto: Crypto = new Crypto(),
-    private readonly maxPayloadLogLength: number = 100
+    private readonly maxPayloadLogLength: number = 100,
+    private readonly enableLogging: boolean = false
   ) {}
 
   private async tryConnectingToUrls(): Promise<void> {
@@ -190,6 +191,8 @@ export abstract class WebSocketTransportClient {
   }
 
   private log(event: string, ...data: any[]): void {
-    log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.lastSelectedURL}] ${event}`, ...data)
+    if (this.enableLogging) {
+      log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.lastSelectedURL}] ${event}`, ...data)
+    } 
   }
 }
