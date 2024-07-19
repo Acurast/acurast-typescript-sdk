@@ -62,14 +62,16 @@ export class BrowserWebSocketTransportClient extends WebSocketTransportClient {
   public constructor(
     urls: string[],
     connectionTimeoutMillis: number,
-    maxPayloadLogLength: number = 100
+    maxPayloadLogLength: number = 100,
+    enableLogging: boolean = false
   ) {
     super(
       urls,
       connectionTimeoutMillis,
       new BrowserWebSocketSession(),
       undefined,
-      maxPayloadLogLength
+      maxPayloadLogLength,
+      enableLogging
     )
   }
 }

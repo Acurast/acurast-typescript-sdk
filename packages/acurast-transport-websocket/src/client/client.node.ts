@@ -45,8 +45,8 @@ class NodeWebSocketSession extends WebSocketSession {
       const bytes: Buffer | undefined = Buffer.isBuffer(data)
         ? data
         : data instanceof ArrayBuffer
-        ? Buffer.from(data)
-        : undefined
+          ? Buffer.from(data)
+          : undefined
 
       if (bytes !== undefined) {
         void listener(bytes)
@@ -71,8 +71,16 @@ export class NodeWebSocketTransportClient extends WebSocketTransportClient {
   public constructor(
     urls: string[],
     connectionTimeoutMillis: number,
-    maxPayloadLogLength: number = 100
+    maxPayloadLogLength: number = 100,
+    enableLogging: boolean = false
   ) {
-    super(urls, connectionTimeoutMillis, new NodeWebSocketSession(), undefined, maxPayloadLogLength)
+    super(
+      urls,
+      connectionTimeoutMillis,
+      new NodeWebSocketSession(),
+      undefined,
+      maxPayloadLogLength,
+      enableLogging
+    )
   }
 }
