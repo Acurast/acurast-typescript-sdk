@@ -23,7 +23,14 @@ const useGetAllPeers = (target) => {
 const useConnectedPeers = () => {
   const { allData: list1 } = useGetAllPeers('websocket-proxy-1.prod.gke.acurast.com')
   const { allData: list2 } = useGetAllPeers('websocket-proxy-2.prod.gke.acurast.com')
+  const [list, setList] = useState([])
 
-  return { list: [...list1, ...list2] }
+  useEffect(() => {
+    const l1 = list1.map((el) => [el, 'proxy-1', 'true']).flat(1)
+    const l2 = list2.map((el) => [el, 'proxy-2', 'true']).flat(1)
+    setList([...l1, ...l2])
+  }, [list1, list2])
+
+  return { list }
 }
 export default useConnectedPeers
