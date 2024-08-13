@@ -40,10 +40,10 @@ const Grid = (props) => {
             <h3>Status</h3>
             {filteredElements
               .slice(
-                (page - 1) * filteredElements.length,
-                (page - 1) * filteredElements.length + filteredElements.length
+                (page - 1) * 10,
+                (page - 1) * 10 + 10
               )
-              .map((el, i) => (
+              .map((el) => (
                 <>
                   <div key={Math.random()}>{el.id}</div>
                   <div key={Math.random()}>{el.proxy}</div>
