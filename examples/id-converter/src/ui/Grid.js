@@ -61,7 +61,7 @@ const Grid = (props) => {
               ))}
           </SimpleGrid>
           <Pagination
-            total={Math.max(filteredElements.length / 10, 1)}
+            total={Math.max(Math.round(filteredElements.length / 10), 1)}
             value={page}
             onChange={setPage}
           />
