@@ -6,6 +6,12 @@ function App() {
   const { list } = useConnectedPeers()
   const available = list?.filter((el) => el.status === 'READY').length ?? 0
   const unavailable = list?.filter((el) => el.status === 'UNAVAILABLE').length ?? 0
+  const uniqueNames = new Set()
+  const duplicated = list.filter((el) => {
+    const isDuplicate = uniqueNames.has(el.id)
+    uniqueNames.add(el.id)
+    return isDuplicate
+  })
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -20,6 +26,10 @@ function App() {
         </h3>
       </div>
       <Grid elements={list} />
+      <div>
+        <h3>Duplicated Connections</h3>
+        <Grid elements={duplicated} />
+      </div>
     </div>
   )
 }
