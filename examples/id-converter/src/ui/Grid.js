@@ -40,8 +40,8 @@ const Grid = (props) => {
             <h3>Status</h3>
             {filteredElements
               .slice(
-                (page - 1) * 10,
-                (page - 1) * 10 + 10
+                filteredElements.length > 10 ? (page - 1) * 10 : 0,
+                filteredElements.length > 10 ? (page - 1) * 10 + 10 : 10
               )
               .map((el) => (
                 <>
