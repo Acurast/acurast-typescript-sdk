@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import useFetch from './useFetch'
+import useAcurastClient from './useAcurastClient'
 
 const useGetAllPeers = (target) => {
   const [start, setStart] = useState(0)
@@ -22,13 +23,48 @@ const useGetAllPeers = (target) => {
 const useConnectedPeers = () => {
   const { allData: list1 } = useGetAllPeers('websocket-proxy-1.prod.gke.acurast.com')
   const { allData: list2 } = useGetAllPeers('websocket-proxy-2.prod.gke.acurast.com')
+  const { client, ready } = useAcurastClient()
   const [list, setList] = useState([])
 
   useEffect(() => {
-    const l1 = list1.map((el) => [el, 'proxy-1', 'true'])
-    const l2 = list2.map((el) => [el, 'proxy-2', 'true'])
-    setList([...l1, ...l2])
-  }, [list1, list2])
+    if (!ready) {
+      return
+    }
+
+    const mergedList = [
+      ...list1.map((el) => ({ id: el, proxy: 'proxy-1', status: 'UNAVAILABLE' })),
+      ...list2.map((el) => ({ id: el, proxy: 'proxy-2', status: 'UNAVAILABLE' }))
+    ]
+
+    // Function to handle incoming messages
+    const handleMessage = (message) => {
+      setList((prevList) =>
+        prevList.map((item) =>
+          item.id === Buffer.from(message.sender).toString('hex')
+            ? { ...item, status: 'READY' }
+            : item
+        )
+      )
+    }
+
+    client.onMessage(handleMessage)
+
+    mergedList.forEach((item) => {
+      client.send(
+        item.id,
+        JSON.stringify({
+          from: 'BTC',
+          to: 'USD'
+        })
+      )
+    })
+
+    setList(mergedList)
+
+    return () => {
+      client.onMessage = undefined
+    }
+  }, [list1, list2, client, ready])
 
   return { list }
 }

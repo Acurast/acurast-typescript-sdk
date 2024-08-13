@@ -17,14 +17,12 @@ const SkeletonGrid = () => {
 const Grid = (props) => {
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState('')
-  const filteredElements = props.elements
-    ?.filter(([id]) => {
-      if (!selectedId?.length) {
-        return true
-      }
-      return id === selectedId
-    })
-    .flat(1)
+  const filteredElements = props.elements?.filter(({ id }) => {
+    if (!selectedId?.length) {
+      return true
+    }
+    return id === selectedId
+  })
   return (
     <div>
       <Input
@@ -46,11 +44,24 @@ const Grid = (props) => {
                 (page - 1) * filteredElements.length + filteredElements.length
               )
               .map((el, i) => (
-                <div key={i}>{el}</div>
+                <>
+                  <div key={Math.random()}>{el.id}</div>
+                  <div key={Math.random()}>{el.proxy}</div>
+                  <div
+                    key={Math.random()}
+                    style={
+                      el.status === 'READY'
+                        ? { backgroundColor: 'green' }
+                        : { backgroundColor: 'red' }
+                    }
+                  >
+                    {el.status}
+                  </div>
+                </>
               ))}
           </SimpleGrid>
           <Pagination
-            total={Math.max(filteredElements.length / 30, 1)}
+            total={Math.max(filteredElements.length / 10, 1)}
             value={page}
             onChange={setPage}
           />
