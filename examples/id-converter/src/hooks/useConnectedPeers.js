@@ -9,9 +9,8 @@ const useGetAllPeers = (target) => {
 
   useEffect(() => {
     if (data && data.length > 0) {
-      setAllData((prevData) => [...prevData, ...data])
-      if (data.length < 99) {
-      } else {
+      setAllData(data)
+      if (data.length === 99) {
         setStart((prevStart) => prevStart + 99)
       }
     }
@@ -26,8 +25,8 @@ const useConnectedPeers = () => {
   const [list, setList] = useState([])
 
   useEffect(() => {
-    const l1 = list1.map((el) => [el, 'proxy-1', 'true']).flat(1)
-    const l2 = list2.map((el) => [el, 'proxy-2', 'true']).flat(1)
+    const l1 = list1.map((el) => [el, 'proxy-1', 'true'])
+    const l2 = list2.map((el) => [el, 'proxy-2', 'true'])
     setList([...l1, ...l2])
   }, [list1, list2])
 

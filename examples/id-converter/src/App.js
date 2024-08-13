@@ -8,6 +8,7 @@ function App() {
 
   return (
     <div style={{ textAlign: 'center' }}>
+      <h1>Oracles</h1>
       <Grid elements={list} />
     </div>
   )
