@@ -6,11 +6,14 @@ import { useState } from 'react'
 const SkeletonGrid = () => {
   return (
     <>
-      <h1>Loading</h1>
-      <Skeleton height={50} mt={50} width="100%" radius="xl" />
-      <Skeleton height={50} mt={50} width="100%" radius="xl" />
-      <Skeleton height={50} mt={50} width="100%" radius="xl" />
-      <Skeleton height={50} mt={50} width="100%" radius="xl" />
+      <h3 style={{ textAlign: 'center' }}>Loading</h3>
+      <Skeleton
+        style={{ display: 'inline-flex', textAlign: 'center' }}
+        height={20}
+        mt={20}
+        width="50%"
+        radius="xl"
+      />
     </>
   )
 }
@@ -32,7 +35,7 @@ const Grid = (props) => {
         value={selectedId}
         style={{ width: '20%', float: 'right', display: 'inline-block' }}
       />
-      {props.elements ? (
+      {props.elements?.length ? (
         <>
           <SimpleGrid cols={3} spacing="lg">
             <h3>ID</h3>
