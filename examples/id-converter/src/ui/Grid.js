@@ -20,12 +20,16 @@ const SkeletonGrid = () => {
 const Grid = (props) => {
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState('')
+  const [endLoading, setEndLoading] = useState(false)
   const filteredElements = props.elements?.filter(({ id }) => {
     if (!selectedId?.length) {
       return true
     }
     return id === selectedId
   })
+
+  setTimeout(() => setEndLoading(true), 5000)
+
   return (
     <div>
       <Input
@@ -35,7 +39,7 @@ const Grid = (props) => {
         value={selectedId}
         style={{ width: '20%', float: 'right', display: 'inline-block' }}
       />
-      {props.elements?.length ? (
+      {props.elements?.length || endLoading ? (
         <>
           <SimpleGrid cols={3} spacing="lg">
             <h3>ID</h3>
