@@ -3,11 +3,14 @@ import { AcurastClient } from '@acurast/dapp'
 import './App.css'
 import { useEffect, useMemo, useState } from 'react'
 
-const DEV_WSS = 'wss://websocket-proxy.dev.gke.papers.tech/'
+const DEV_WSS = 'wss://ws-1.ws-server-2.acurast.com/'
 const LOCAL_WSS = 'ws://localhost:9001/'
 
 function App() {
-  const acurastClient = useMemo(() => new AcurastClient(DEV_WSS), [])
+  const acurastClient = useMemo(
+    () => new AcurastClient([LOCAL_WSS, DEV_WSS, 'wss://websocket-proxy.dev.gke.papers.tech/']),
+    []
+  )
 
   const [id, setId] = useState()
   const [keyPair, setKeyPair] = useState()
@@ -17,17 +20,24 @@ function App() {
 
   useEffect(() => {
     const init = async () => {
-      const keyPair = await crypto.subtle.generateKey({
-        name: 'ECDSA',
-        namedCurve: 'P-256'
-      }, true, ['sign'])
-
+      const keyPair = await crypto.subtle.generateKey(
+        {
+          name: 'ECDSA',
+          namedCurve: 'P-256'
+        },
+        true,
+        ['sign']
+      )
 
       const [privateKeyRaw, publicKeyRaw] = await Promise.all([
-        crypto.subtle.exportKey('jwk', keyPair.privateKey).then((jwk) => Buffer.from(jwk.d, 'base64')),
-        crypto.subtle.exportKey('raw', keyPair.publicKey).then((arrayBuffer) => Buffer.from(arrayBuffer))
+        crypto.subtle
+          .exportKey('jwk', keyPair.privateKey)
+          .then((jwk) => Buffer.from(jwk.d, 'base64')),
+        crypto.subtle
+          .exportKey('raw', keyPair.publicKey)
+          .then((arrayBuffer) => Buffer.from(arrayBuffer))
       ])
-  
+
       const publicKeyCompressedSize = (publicKeyRaw.length - 1) / 2
       const publicKeyCompressed = Buffer.concat([
         new Uint8Array([publicKeyRaw[2 * publicKeyCompressedSize] % 2 ? 3 : 2]),
@@ -53,9 +63,9 @@ function App() {
   }
 
   const open = async () => {
-    await acurastClient.start({ 
-      secretKey: keyPair.privateKey, 
-      publicKey: keyPair.publicKey,
+    await acurastClient.start({
+      secretKey: keyPair.privateKey,
+      publicKey: keyPair.publicKey
     })
 
     acurastClient.onMessage((message) => {
@@ -85,13 +95,17 @@ function App() {
         <span>ID: </span>
         <span>{id}</span>
       </div>
-      <br /><br />
+      <br />
+      <br />
       <button onClick={open}>Open Connection</button>
-      <br /><br />
+      <br />
+      <br />
       <button onClick={close}>Close Connection</button>
-      <br /><br />
+      <br />
+      <br />
       ---
-      <br /><br />
+      <br />
+      <br />
       <div>
         <span>Recipient</span>
         <input type="text" onChange={onRecipientInput}></input>
@@ -101,14 +115,16 @@ function App() {
         <input type="text" onChange={onPayloadInput}></input>
       </div>
       <button onClick={send}>Send</button>
-      <br /><br />
+      <br />
+      <br />
       ---
-      <br /><br />
+      <br />
+      <br />
       <button onClick={clear}>Clear</button>
       <div>Message:</div>
-      <div className='multiline'>{message ? JSON.stringify(message, null, 2) : '<empty>'}</div>
+      <div className="multiline">{message ? JSON.stringify(message, null, 2) : '<empty>'}</div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

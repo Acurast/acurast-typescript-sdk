@@ -2,8 +2,6 @@ import { randomBytes } from '@stablelib/random'
 import { SHA256 } from '@stablelib/sha256'
 import { ec as EC } from 'elliptic'
 
-import { trim } from './utils/bytes'
-
 export class Crypto {
   public getRandomValues(size: number): Uint8Array {
     return randomBytes(size)
@@ -26,6 +24,17 @@ export class Crypto {
     const ec = new EC('p256')
     const signature = ec.keyFromPrivate(secretKey).sign(data)
 
-    return Buffer.concat([Buffer.from(trim(signature.r.toString('hex')), 'hex'), Buffer.from(trim(signature.s.toString('hex')), 'hex')])
+    return Buffer.concat([
+      signature.r.toArrayLike(Buffer, 'be', 32),
+      signature.s.toArrayLike(Buffer, 'be', 32)
+    ])
+  }
+
+  public senderId(publicKeyOrSenderId: Uint8Array): Uint8Array {
+    if (publicKeyOrSenderId.length === 16) {
+      return publicKeyOrSenderId
+    }
+    const pkh = this.sha256(publicKeyOrSenderId)
+    return pkh.slice(0, 16)
   }
 }

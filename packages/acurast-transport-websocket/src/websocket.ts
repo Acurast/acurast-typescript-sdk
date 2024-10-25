@@ -5,7 +5,8 @@ import { parseMessage } from './message/parser/parser'
 export abstract class WebSocketSession {
   public abstract open(url: string): Promise<void>
   public abstract close(): Promise<void>
-  
+  public abstract onClose(listener: Function): void
+
   public async send(message: Message): Promise<void> {
     await this.sendRaw(forgeMessage(message))
   }
@@ -18,7 +19,7 @@ export abstract class WebSocketSession {
       }
     })
   }
-  
+
   protected abstract onRawMessage(listener: (data: Uint8Array) => void | Promise<void>): void
   protected abstract sendRaw(data: Uint8Array): Promise<void>
 }

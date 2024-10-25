@@ -15,7 +15,7 @@ class BrowserWebSocketSession extends WebSocketSession {
   public override async open(url: string): Promise<void> {
     this._ws = new WebSocket(url)
     this.ws.binaryType = 'arraybuffer'
-    
+
     await new Promise<void>((resolve, reject) => {
       const onError = (event: Event): void => {
         this.ws.onerror = null
@@ -35,6 +35,7 @@ class BrowserWebSocketSession extends WebSocketSession {
   }
 
   public override async close(): Promise<void> {
+    this.ws.onclose = null
     this._ws?.close()
   }
 
@@ -47,10 +48,30 @@ class BrowserWebSocketSession extends WebSocketSession {
   protected override async sendRaw(data: Uint8Array): Promise<void> {
     this.ws.send(data)
   }
+
+  override onClose(listener: Function): void {
+    this.ws.onclose = () => {
+      this.ws.onopen = null
+      this.ws.onerror = null
+      listener()
+    }
+  }
 }
 
 export class BrowserWebSocketTransportClient extends WebSocketTransportClient {
-  public constructor(url: string, connectionTimeoutMillis: number) {
-    super(url, connectionTimeoutMillis, new BrowserWebSocketSession())
+  public constructor(
+    urls: string[],
+    connectionTimeoutMillis: number,
+    maxPayloadLogLength: number = 100,
+    enableLogging: boolean = false
+  ) {
+    super(
+      urls,
+      connectionTimeoutMillis,
+      new BrowserWebSocketSession(),
+      undefined,
+      maxPayloadLogLength,
+      enableLogging
+    )
   }
 }
