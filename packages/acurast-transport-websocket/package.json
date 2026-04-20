@@ -1,6 +1,7 @@
 {
   "name": "@acurast/transport-websocket",
   "version": "1.0.1",
+  "deprecated": "This package is deprecated and no longer maintained.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "ISC",
   "types": "./dist/esm/index.d.ts",
