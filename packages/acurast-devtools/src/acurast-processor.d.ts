@@ -5,7 +5,7 @@ declare function httpPOST(
   body: string,
   headers: Record<string, string>,
   onSuccess: (response: string, certificate: string) => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
 ): void
 
 declare const _DEVTOOLS_: {
@@ -20,7 +20,7 @@ declare const _DEVTOOLS_: {
       fileSize: number
       createdAt: string
     }) => void,
-    onError: (error: string) => void
+    onError: (error: string) => void,
   ): void
 }
 

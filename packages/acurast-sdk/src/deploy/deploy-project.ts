@@ -2,11 +2,7 @@ import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { KeyringPair } from '@polkadot/keyring/types'
 import { basename } from 'node:path'
-import {
-  type AcurastProjectConfig,
-  type JobRegistration,
-  RestartPolicy,
-} from '../types/project.js'
+import { type AcurastProjectConfig, type JobRegistration, RestartPolicy } from '../types/project.js'
 import { DeploymentStatus } from '../types/deployment-status.js'
 import type { EnvVar, JobId } from '../types/env.js'
 import { registerJob } from '../chain/register-job.js'
@@ -40,10 +36,7 @@ export interface DeployProjectOptions {
    * IPFS upload. The hook may return a new zip path (e.g. one with a
    * DevTools snippet injected).
    */
-  transformBundle?: (opts: {
-    zipPath: string
-    entrypoint: string
-  }) => Promise<string>
+  transformBundle?: (opts: { zipPath: string; entrypoint: string }) => Promise<string>
   /** Override for the temp-bundle directory. Defaults to `.acurast/bundles`. */
   bundleFolder?: string
 }
@@ -56,7 +49,7 @@ export interface DeployProjectOptions {
 export const deployProject = async (
   config: AcurastProjectConfig,
   job: JobRegistration,
-  options: DeployProjectOptions
+  options: DeployProjectOptions,
 ): Promise<JobRegistration> => {
   const logger = options.logger ?? NOOP_LOGGER
   const bundleFolder = options.bundleFolder ?? BUNDLE_FOLDER
@@ -73,14 +66,12 @@ export const deployProject = async (
     ipfsHash = config.fileUrl
     if (config.enableDevtools) {
       logger.warn(
-        'enableDevtools is ignored when fileUrl is an IPFS hash — the devtools snippet can only be injected into local bundles.'
+        'enableDevtools is ignored when fileUrl is an IPFS hash — the devtools snippet can only be injected into local bundles.',
       )
     }
     logger.debug(`config.fileUrl is an IPFS hash, so we use this: ${ipfsHash}`)
   } else {
-    logger.debug(
-      `config.fileUrl is not an IPFS hash, so we zip it: ${config.fileUrl}`
-    )
+    logger.debug(`config.fileUrl is not an IPFS hash, so we zip it: ${config.fileUrl}`)
 
     const isFolder = await checkIsFolder(config.fileUrl)
     if (isFolder) {
@@ -88,9 +79,7 @@ export const deployProject = async (
         logger.error('entrypoint is required for folders')
         throw new Error('entrypoint is required for folders')
       }
-      logger.debug(
-        `config.fileUrl is a folder, so we use the entrypoint: ${config.entrypoint}`
-      )
+      logger.debug(`config.fileUrl is a folder, so we use the entrypoint: ${config.entrypoint}`)
     }
 
     const entrypoint = config.entrypoint ?? basename(config.fileUrl)
@@ -101,10 +90,10 @@ export const deployProject = async (
       createManifest(
         config.projectName,
         entrypoint,
-        config.restartPolicy ?? RestartPolicy.OnFailure
+        config.restartPolicy ?? RestartPolicy.OnFailure,
       ),
       config.projectName,
-      logger
+      logger,
     )
 
     if (options.transformBundle) {
@@ -138,7 +127,7 @@ export const deployProject = async (
       if (status === DeploymentStatus.Acknowledged) {
         if (envHasBeenSet) {
           logger.log(
-            'Setting Environment Variables: Env has been set, but new acks have been received.'
+            'Setting Environment Variables: Env has been set, but new acks have been received.',
           )
           return options.statusCallback(status, data)
         }
@@ -151,9 +140,7 @@ export const deployProject = async (
             clearTimeout(timeout)
           }
           timeout = undefined
-          logger.debug(
-            'Setting Environment Variables: Preparing transaction'
-          )
+          logger.debug('Setting Environment Variables: Preparing transaction')
 
           if (!jobId) {
             logger.error('Setting Environment Variables: JobId not set')
@@ -170,37 +157,34 @@ export const deployProject = async (
               wallet: options.wallet,
               rpcEndpoint: options.rpcEndpoint,
               keyStore: options.keyStore,
-            }
+            },
           )
 
           logger.debug(
-            `Setting Environment Variables: Done ${envs.hash ? `(hash: ${envs.hash})` : ''}`
+            `Setting Environment Variables: Done ${envs.hash ? `(hash: ${envs.hash})` : ''}`,
           )
-          options.statusCallback(
-            DeploymentStatus.EnvironmentVariablesSet,
-            envs
-          )
+          options.statusCallback(DeploymentStatus.EnvironmentVariablesSet, envs)
         }
 
         if (data.acknowledged >= config.numberOfReplicas) {
           logger.debug(
-            'Setting Environment Variables: Have all acknowledgements, so we can set the env vars now.'
+            'Setting Environment Variables: Have all acknowledgements, so we can set the env vars now.',
           )
           setEnv()
         } else if (timeToJobStart <= TWO_MINUTES) {
           logger.debug(
-            'Setting Environment Variables: Start is scheduled within 2 minutes, so we do it now.'
+            'Setting Environment Variables: Start is scheduled within 2 minutes, so we do it now.',
           )
           setEnv()
         } else if (!timeout) {
           logger.debug(
             `Setting Environment Variables: Start is in the future, timeout will trigger in ${
               timeToJobStart - TWO_MINUTES
-            }ms, 2 minutes before start time.`
+            }ms, 2 minutes before start time.`,
           )
           timeout = setTimeout(() => {
             logger.debug(
-              'Setting Environment Variables: Was in the future, timeout was awaited, now it will be set.'
+              'Setting Environment Variables: Was in the future, timeout was awaited, now it will be set.',
             )
             setEnv()
           }, timeToJobStart - TWO_MINUTES)
@@ -210,12 +194,7 @@ export const deployProject = async (
       options.statusCallback(status, data)
     }
 
-    const result = await registerJob(
-      api,
-      options.wallet,
-      job,
-      statusCallbackWrapper
-    )
+    const result = await registerJob(api, options.wallet, job, statusCallbackWrapper)
 
     options.statusCallback(DeploymentStatus.Submit, { txHash: result })
   }

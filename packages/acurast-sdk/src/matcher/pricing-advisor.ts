@@ -1,9 +1,5 @@
 import { BigNumber } from 'bignumber.js'
-import type {
-  MatchCheckResult,
-  AveragePriceResult,
-  PriceDistributionBucket,
-} from './api.js'
+import type { MatchCheckResult, AveragePriceResult, PriceDistributionBucket } from './api.js'
 
 export interface PricingAdvice {
   status: 'sufficient' | 'insufficient' | 'overpaying'
@@ -20,7 +16,7 @@ export function analyzePricing(
   distribution: PriceDistributionBucket[],
   averagePriceResult: AveragePriceResult,
   currentPrice: BigNumber,
-  requiredProcessors: number
+  requiredProcessors: number,
 ): PricingAdvice {
   const averagePrice = averagePriceResult.average_price
     ? new BigNumber(averagePriceResult.average_price)
@@ -55,7 +51,7 @@ export function analyzePricing(
  */
 function computeSuggestedPrice(
   buckets: PriceDistributionBucket[],
-  requiredProcessors: number
+  requiredProcessors: number,
 ): BigNumber | null {
   if (buckets.length === 0) return null
 

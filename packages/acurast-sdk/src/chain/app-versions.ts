@@ -68,9 +68,7 @@ export const deviceVersions = new Map<deviceTypeNumber, Map<number, string>>([
   [1, iosVersions],
 ])
 
-export const getHumanReadableVersion = (
-  version: Version | undefined
-): string => {
+export const getHumanReadableVersion = (version: Version | undefined): string => {
   if (version == null) {
     return ''
   }
@@ -89,12 +87,12 @@ export const DEVICE_VERSIONS_URL =
  * bundled with this SDK release.
  */
 export const fetchDeviceVersions = async (
-  url: string = DEVICE_VERSIONS_URL
+  url: string = DEVICE_VERSIONS_URL,
 ): Promise<Map<deviceTypeNumber, Map<buildNumber, string>>> => {
   const response = await fetch(url)
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch device versions from ${url}: ${response.status} ${response.statusText}`
+      `Failed to fetch device versions from ${url}: ${response.status} ${response.statusText}`,
     )
   }
   const json = (await response.json()) as Record<string, Record<string, string>>

@@ -11,7 +11,7 @@ export const checkIsFolder = async (path: string): Promise<boolean> => {
 export const createManifest = (
   name: string,
   entrypoint: string,
-  restartPolicy: RestartPolicy
+  restartPolicy: RestartPolicy,
 ): string => {
   return JSON.stringify({
     name,
@@ -26,7 +26,7 @@ export const zipFolder = async (
   outputFolder: string,
   manifest: string,
   deploymentName: string,
-  logger: Logger = NOOP_LOGGER
+  logger: Logger = NOOP_LOGGER,
 ): Promise<{ zipPath: string }> => {
   if (!existsSync(input)) {
     throw new Error(`Input folder ${input} does not exist`)

@@ -17,7 +17,7 @@ export interface InitMessage extends V1BaseMessage<'init'> {
 export function createInitMessage(
   sender: Uint8Array,
   recipient: Uint8Array = EMPTY_ADDRESS,
-  permissions?: Permissions
+  permissions?: Permissions,
 ): InitMessage {
   return {
     version: 1,
@@ -37,7 +37,7 @@ export function createChallengeMessage(
   recipient: Uint8Array,
   challenge: Uint8Array,
   difficulty: Uint8Array,
-  sender: Uint8Array = EMPTY_ADDRESS
+  sender: Uint8Array = EMPTY_ADDRESS,
 ): ChallengeMessage {
   return {
     version: 1,
@@ -45,7 +45,7 @@ export function createChallengeMessage(
     sender,
     recipient,
     challenge,
-    difficulty
+    difficulty,
   }
 }
 
@@ -62,7 +62,7 @@ export function createResponseMessage(
   publicKey: Uint8Array,
   nonce: Uint8Array,
   signature: Uint8Array,
-  recipient: Uint8Array = EMPTY_ADDRESS
+  recipient: Uint8Array = EMPTY_ADDRESS,
 ): ResponseMessage {
   return {
     version: 1,
@@ -72,7 +72,7 @@ export function createResponseMessage(
     challenge,
     publicKey,
     nonce,
-    signature
+    signature,
   }
 }
 
@@ -80,13 +80,13 @@ export interface AcceptedMessage extends V1BaseMessage<'accepted'> {}
 
 export function createAcceptedMessage(
   recipient: Uint8Array,
-  sender: Uint8Array = EMPTY_ADDRESS
+  sender: Uint8Array = EMPTY_ADDRESS,
 ): AcceptedMessage {
   return {
     version: 1,
     type: 'accepted',
     sender,
-    recipient
+    recipient,
   }
 }
 
@@ -97,14 +97,14 @@ export interface PayloadMessage extends V1BaseMessage<'payload'> {
 export function createPayloadMessage(
   sender: Uint8Array,
   recipient: Uint8Array,
-  payload: Uint8Array
+  payload: Uint8Array,
 ): PayloadMessage {
   return {
     version: 1,
     type: 'payload',
     sender,
     recipient,
-    payload
+    payload,
   }
 }
 
@@ -120,5 +120,5 @@ export const V1MessageCode: Record<V1Message['type'], number> = {
   challenge: 0x01,
   response: 0x02,
   accepted: 0x03,
-  payload: 0x04
+  payload: 0x04,
 }

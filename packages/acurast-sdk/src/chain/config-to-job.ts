@@ -23,32 +23,30 @@ export const DEFAULT_TIME_BETWEEN_EXECUTIONS_MS = 10 * second
 export const DEFAULT_START_DELAY = 5 * minute
 
 export function isStartAtMsFromNow(
-  startAt: { msFromNow: number } | { timestamp: string | number }
+  startAt: { msFromNow: number } | { timestamp: string | number },
 ): startAt is { msFromNow: number } {
   return (startAt as { msFromNow: number }).msFromNow !== undefined
 }
 
 export function isStartAtTimestamp(
-  startAt: { msFromNow: number } | { timestamp: string | number }
+  startAt: { msFromNow: number } | { timestamp: string | number },
 ): startAt is { timestamp: string | number } {
   return (startAt as { timestamp: string | number }).timestamp !== undefined
 }
 
 function getKeyFromValue<T = unknown>(
   map: Map<T, string> | undefined,
-  value: string
+  value: string,
 ): T | undefined {
   if (!map) {
     return undefined
   }
 
-  return Array.from(map.entries()).find(
-    ([_, version]) => version === value
-  )?.[0]
+  return Array.from(map.entries()).find(([_, version]) => version === value)?.[0]
 }
 
 function convertMinProcessorVersions(
-  minProcessorVersions: AcurastProjectConfig['minProcessorVersions']
+  minProcessorVersions: AcurastProjectConfig['minProcessorVersions'],
 ): JobRegistration['extra']['requirements']['processorVersion'] {
   const minAndroidVersion = minProcessorVersions?.android
   const minIosVersion = minProcessorVersions?.ios
@@ -58,7 +56,7 @@ function convertMinProcessorVersions(
   function addVersionIfDefined(
     version: string | number | undefined,
     platform: number,
-    platformName: string
+    platformName: string,
   ) {
     if (version !== undefined) {
       const buildNumber =
@@ -73,7 +71,7 @@ function convertMinProcessorVersions(
         })
       } else {
         throw new Error(
-          `Cannot resolve min processor version for ${platformName} from version "${version}" to buildNumber. Please specify the build number directly.`
+          `Cannot resolve min processor version for ${platformName} from version "${version}" to buildNumber. Please specify the build number directly.`,
         )
       }
     }
@@ -91,18 +89,12 @@ function convertMinProcessorVersions(
   }
 }
 
-export const convertConfigToJob = (
-  config: AcurastProjectConfig
-): JobRegistration => {
+export const convertConfigToJob = (config: AcurastProjectConfig): JobRegistration => {
   const slots = config.numberOfReplicas ?? DEFAULT_REPLICAS
   const rewardPerExecution = config.maxCostPerExecution ?? DEFAULT_REWARD
-  const startDelay =
-    config.maxAllowedStartDelayInMs ?? DEFAULT_MAX_ALLOWED_START_DELAY_MS
-  const processorReputation =
-    config.minProcessorReputation ?? DEFAULT_PROCESSOR_REPUTATION
-  const minProcessorVersions = convertMinProcessorVersions(
-    config.minProcessorVersions
-  )
+  const startDelay = config.maxAllowedStartDelayInMs ?? DEFAULT_MAX_ALLOWED_START_DELAY_MS
+  const processorReputation = config.minProcessorReputation ?? DEFAULT_PROCESSOR_REPUTATION
+  const minProcessorVersions = convertMinProcessorVersions(config.minProcessorVersions)
   const mutability = config.mutability ?? ScriptMutability.Immutable
 
   const now = Date.now()
@@ -127,10 +119,7 @@ export const convertConfigToJob = (
     interval = endTime - startTime
   } else if (config.execution.type === 'interval') {
     interval = config.execution.intervalInMs
-    endTime =
-      startTime +
-      config.execution.intervalInMs * config.execution.numberOfExecutions +
-      1
+    endTime = startTime + config.execution.intervalInMs * config.execution.numberOfExecutions + 1
     duration =
       config.execution.maxExecutionTimeInMs ??
       config.execution.intervalInMs - DEFAULT_TIME_BETWEEN_EXECUTIONS_MS - 1

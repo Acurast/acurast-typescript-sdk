@@ -33,13 +33,13 @@ export const acurastProjectConfigSchema = z.object({
                 const date = new Date(val)
                 return !isNaN(date.getTime())
               },
-              { message: 'Invalid timestamp' }
+              { message: 'Invalid timestamp' },
             )
             .refine(
               (val) => {
                 return val >= Date.now()
               },
-              { message: 'Timestamp cannot be in the past' }
+              { message: 'Timestamp cannot be in the past' },
             ),
           z.string().datetime(),
         ]),
@@ -52,11 +52,9 @@ export const acurastProjectConfigSchema = z.object({
       instantMatch: z
         .array(
           z.object({
-            processor: z
-              .string()
-              .refine(isAcurastAddress, isNotAcurastAddressMessage),
+            processor: z.string().refine(isAcurastAddress, isNotAcurastAddressMessage),
             maxAllowedStartDelayInMs: z.number().min(0),
-          })
+          }),
         )
         .optional(),
     }),
@@ -87,7 +85,7 @@ export const acurastProjectConfigSchema = z.object({
         {
           message: 'maxExecutionTimeInMs must be less than intervalInMs',
           path: ['maxExecutionTimeInMs'],
-        }
+        },
       ),
   ]),
   maxAllowedStartDelayInMs: z.number().min(0),
@@ -123,13 +121,11 @@ export const acurastProjectConfigSchema = z.object({
   restartPolicy: z.nativeEnum(RestartPolicy).optional(),
   runtime: z.nativeEnum(DeploymentRuntime).optional(),
   mutability: z.nativeEnum(ScriptMutability).optional(),
-  reuseKeysFrom: z
-    .tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()])
-    .optional(),
+  reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
 })
 
-const acurastProjectConfigSchemaWithNotes =
-  acurastProjectConfigSchema.superRefine((data, context) => {
+const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefine(
+  (data, context) => {
     if (!data.onlyAttestedDevices) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -193,10 +189,11 @@ const acurastProjectConfigSchemaWithNotes =
         path: ['execution', 'maxExecutionTimeInMs'],
       })
     }
-  })
+  },
+)
 
 export const validateConfig = (
-  config: unknown
+  config: unknown,
 ):
   | { success: true; data: AcurastProjectConfig; notes?: ZodIssue[] }
   | { success: false; error: any; notes?: ZodIssue[] } => {

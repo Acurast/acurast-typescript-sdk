@@ -1,4 +1,4 @@
-FROM node:16.19.1
+FROM node:24
 
 RUN apt-get update && apt-get install -yq git build-essential
 

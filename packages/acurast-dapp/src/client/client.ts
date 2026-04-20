@@ -20,15 +20,25 @@ export class AcurastClient {
 
   private messageListenerBuffer: MessageListener[] = []
 
-  public constructor(private readonly urls: string[], private readonly connectionTimeoutMillis: number = CONNECTION_TIMEOUT_MS, private readonly maxPayloadLogLength: number = 100, private readonly enableLogging: boolean = false) {}
+  public constructor(
+    private readonly urls: string[],
+    private readonly connectionTimeoutMillis: number = CONNECTION_TIMEOUT_MS,
+    private readonly maxPayloadLogLength: number = 100,
+    private readonly enableLogging: boolean = false,
+  ) {}
 
   public async start(keyPair: KeyPair): Promise<void> {
     if (this._transport !== undefined) {
       return
     }
 
-    const transport = new WebSocketTransportClient(this.urls, this.connectionTimeoutMillis, this.maxPayloadLogLength, this.enableLogging)
-    
+    const transport = new WebSocketTransportClient(
+      this.urls,
+      this.connectionTimeoutMillis,
+      this.maxPayloadLogLength,
+      this.enableLogging,
+    )
+
     this.messageListenerBuffer.forEach((listener: MessageListener) => {
       transport.onMessage(listener)
     })
@@ -36,9 +46,9 @@ export class AcurastClient {
 
     await transport.connect({
       secretKey: uint8ArrayFrom(keyPair.secretKey),
-      publicKey: uint8ArrayFrom(keyPair.publicKey)
+      publicKey: uint8ArrayFrom(keyPair.publicKey),
     })
-    
+
     this._transport = transport
   }
 
@@ -50,7 +60,10 @@ export class AcurastClient {
     }
   }
 
-  public async send(publicKeyOrSenderId: string | Uint8Array, payload: string | Uint8Array): Promise<void> {
+  public async send(
+    publicKeyOrSenderId: string | Uint8Array,
+    payload: string | Uint8Array,
+  ): Promise<void> {
     await this.transport.send(uint8ArrayFrom(publicKeyOrSenderId), uint8ArrayFrom(payload))
   }
 

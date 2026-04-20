@@ -27,19 +27,14 @@ export class JobEnvironmentService {
     this.keyStore = options.keyStore ?? new InMemoryKeyStore()
   }
 
-  private keyStorageId(
-    type: 'publicKey' | 'privateKey',
-    curve: EncKeyCurve
-  ): string {
+  private keyStorageId(type: 'publicKey' | 'privateKey', curve: EncKeyCurve): string {
     return curve === 'p256' && this.keyStore.getItem(type)
       ? type // backwards compatiblity
       : `${type}_${curve}`
   }
 
   public getPublicKey(curve: EncKeyCurve): string | undefined {
-    return (
-      this.keyStore.getItem(this.keyStorageId('publicKey', curve)) ?? undefined
-    )
+    return this.keyStore.getItem(this.keyStorageId('publicKey', curve)) ?? undefined
   }
 
   public setPublicKey(key: string, curve: EncKeyCurve) {
@@ -47,9 +42,7 @@ export class JobEnvironmentService {
   }
 
   public getPrivateKey(curve: EncKeyCurve): string | undefined {
-    return (
-      this.keyStore.getItem(this.keyStorageId('privateKey', curve)) ?? undefined
-    )
+    return this.keyStore.getItem(this.keyStorageId('privateKey', curve)) ?? undefined
   }
 
   public setPrivateKey(key: string, curve: EncKeyCurve) {
@@ -58,7 +51,7 @@ export class JobEnvironmentService {
 
   public async generateSharedSecret(
     processorPublicKeyHex: string,
-    curve: EncKeyCurve
+    curve: EncKeyCurve,
   ): Promise<string> {
     const EC = new ec(curve)
 
@@ -77,13 +70,10 @@ export class JobEnvironmentService {
     return Buffer.from(sharedSecret.toArray()).toString('hex')
   }
 
-  public async generateSharedKey(
-    processorPublicKeyHex: string,
-    curve: EncKeyCurve
-  ) {
+  public async generateSharedKey(processorPublicKeyHex: string, curve: EncKeyCurve) {
     const sharedSecret = Buffer.from(
       await this.generateSharedSecret(processorPublicKeyHex, curve),
-      'hex'
+      'hex',
     )
     const sharedSecretSalt = Buffer.alloc(16)
 
@@ -131,19 +121,15 @@ export class JobEnvironmentService {
     keyMaterial: Buffer,
     salt: Uint8Array,
     info: Uint8Array,
-    length: number
+    length: number,
   ): Promise<ArrayBuffer> {
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyMaterial,
-      { name: 'HKDF' },
-      false,
-      ['deriveBits']
-    )
+    const key = await crypto.subtle.importKey('raw', keyMaterial, { name: 'HKDF' }, false, [
+      'deriveBits',
+    ])
     return await crypto.subtle.deriveBits(
       { name: 'HKDF', salt, info, hash: 'SHA-256' },
       key,
-      length * 8
+      length * 8,
     )
   }
 
@@ -170,11 +156,7 @@ export class JobEnvironmentService {
   }
 
   public decrypt(data: EncryptedValue, key: Buffer): string {
-    const decipher = crypto.createDecipheriv(
-      'aes-256-gcm',
-      key,
-      Buffer.from(data.iv, 'hex')
-    )
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(data.iv, 'hex'))
     decipher.setAuthTag(Buffer.from(data.authTag, 'hex'))
 
     let decrypted = decipher.update(data.ciphertext, 'hex', 'utf8')
@@ -186,20 +168,21 @@ export class JobEnvironmentService {
     keyring: KeyringPair,
     assignment: JobAssignmentInfo,
     jobId: number,
-    jobEnvironmentVariables: EnvVar[]
+    jobEnvironmentVariables: EnvVar[],
   ) {
     const processorEncryptionKey = getProcessorEncryptionKey(assignment)
     if (processorEncryptionKey !== undefined) {
       const sharedKey = await this.generateSharedKey(
         processorEncryptionKey.publicKey,
-        processorEncryptionKey.curve
+        processorEncryptionKey.curve,
       )
 
-      const encryptedEnvironment: EnvVarEncrypted[] =
-        jobEnvironmentVariables.map((envVar: EnvVar) => ({
+      const encryptedEnvironment: EnvVarEncrypted[] = jobEnvironmentVariables.map(
+        (envVar: EnvVar) => ({
           key: envVar.key,
           encryptedValue: this.encrypt(envVar.value, sharedKey),
-        }))
+        }),
+      )
 
       const publicKey = this.getPublicKey(processorEncryptionKey.curve)
       if (publicKey !== undefined) {
@@ -217,13 +200,9 @@ export class JobEnvironmentService {
   private async setEnvironment(
     keyring: KeyringPair,
     jobId: number,
-    jobEnvironment: JobEnvironmentEncrypted
+    jobEnvironment: JobEnvironmentEncrypted,
   ): Promise<{ hash: string }> {
-    const hash = await this.acurastService.setEnvironment(
-      keyring,
-      jobId,
-      jobEnvironment
-    )
+    const hash = await this.acurastService.setEnvironment(keyring, jobId, jobEnvironment)
     return { hash: hash.toString() }
   }
 
@@ -231,7 +210,7 @@ export class JobEnvironmentService {
     keyring: KeyringPair,
     assignments: JobAssignmentInfo[],
     jobId: number,
-    jobEnvironmentVariables: EnvVar[]
+    jobEnvironmentVariables: EnvVar[],
   ) {
     const jobEnvironments: JobEnvironmentsEncrypted = []
 
@@ -241,14 +220,15 @@ export class JobEnvironmentService {
       if (processorEncryptionKey !== undefined) {
         const sharedKey = await this.generateSharedKey(
           processorEncryptionKey.publicKey,
-          processorEncryptionKey.curve
+          processorEncryptionKey.curve,
         )
 
-        const encryptedEnvironment: EnvVarEncrypted[] =
-          jobEnvironmentVariables.map((envVar: EnvVar) => ({
+        const encryptedEnvironment: EnvVarEncrypted[] = jobEnvironmentVariables.map(
+          (envVar: EnvVar) => ({
             key: envVar.key,
             encryptedValue: this.encrypt(envVar.value, sharedKey),
-          }))
+          }),
+        )
 
         const publicKey = this.getPublicKey(processorEncryptionKey.curve)
         if (publicKey !== undefined) {
@@ -271,13 +251,9 @@ export class JobEnvironmentService {
   private async setEnvironments(
     keyring: KeyringPair,
     jobId: number,
-    jobEnvironments: JobEnvironmentsEncrypted
+    jobEnvironments: JobEnvironmentsEncrypted,
   ): Promise<{ hash: string }> {
-    const hash = await this.acurastService.setEnvironments(
-      keyring,
-      jobId,
-      jobEnvironments
-    )
+    const hash = await this.acurastService.setEnvironments(keyring, jobId, jobEnvironments)
     return { hash: hash.toString() }
   }
 }

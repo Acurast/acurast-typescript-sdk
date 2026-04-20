@@ -1,10 +1,6 @@
 import { AcurastService } from './acurast-service.js'
 import { JobEnvironmentService } from './env-encryption.js'
-import type {
-  EnvVar,
-  Job,
-  JobId,
-} from '../types/env.js'
+import type { EnvVar, Job, JobId } from '../types/env.js'
 import { toNumber } from './job-to-number.js'
 import type { KeyringPair } from '@polkadot/keyring/types'
 import type { KeyStore } from './key-store.js'
@@ -20,7 +16,7 @@ export interface SetEnvVarsOptions {
 
 export const setEnvVars = async (
   job: Job & { envVars?: EnvVar[] },
-  options: SetEnvVarsOptions
+  options: SetEnvVarsOptions,
 ): Promise<{ hash?: string }> => {
   const acurast = new AcurastService(options.rpcEndpoint)
 
@@ -28,10 +24,8 @@ export const setEnvVars = async (
     [{ acurast: job.id[0].acurast }, Number(toNumber(job.id[1]))],
   ])
 
-  const keys: [string, JobId][] = Array.from(
-    assignedProcessors.entries()
-  ).flatMap(([_, [jobId, processors]]) =>
-    processors.map<[string, JobId]>((account) => [account, jobId])
+  const keys: [string, JobId][] = Array.from(assignedProcessors.entries()).flatMap(
+    ([_, [jobId, processors]]) => processors.map<[string, JobId]>((account) => [account, jobId]),
   )
 
   const jobAssignmentInfos = await acurast.jobAssignments(keys)
@@ -59,7 +53,7 @@ export const setEnvVars = async (
     options.wallet,
     jobAssignmentInfos,
     Number(toNumber(job.id[1] as any)),
-    envVars
+    envVars,
   )
 
   return { hash: res.hash }

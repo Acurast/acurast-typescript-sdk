@@ -1,9 +1,6 @@
 import { BigNumber } from 'bignumber.js'
 import { convertConfigToJob } from '../chain/config-to-job.js'
-import {
-  AssignmentStrategyVariant,
-  type AcurastProjectConfig,
-} from '../types/project.js'
+import { AssignmentStrategyVariant, type AcurastProjectConfig } from '../types/project.js'
 import { checkMatch, getAveragePrice, getPriceDistribution } from './api.js'
 import { analyzePricing, type PricingAdvice } from './pricing-advisor.js'
 
@@ -22,7 +19,7 @@ import { analyzePricing, type PricingAdvice } from './pricing-advisor.js'
 export async function fetchPricingAdvice(
   config: AcurastProjectConfig,
   walletAddress: string,
-  matcherUrl: string | undefined
+  matcherUrl: string | undefined,
 ): Promise<PricingAdvice | undefined> {
   const hasInstantMatch =
     config.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
@@ -47,7 +44,7 @@ export async function fetchPricingAdvice(
       distResult.data.buckets,
       avgPriceResult.data,
       new BigNumber(config.maxCostPerExecution),
-      config.numberOfReplicas
+      config.numberOfReplicas,
     )
   }
 

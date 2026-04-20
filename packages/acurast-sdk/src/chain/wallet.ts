@@ -10,7 +10,7 @@ import type { KeyringPair } from '@polkadot/keyring/types'
  */
 export const walletFromMnemonic = async (
   mnemonic: string,
-  options: { name?: string } = {}
+  options: { name?: string } = {},
 ): Promise<KeyringPair> => {
   await waitReady()
   const keyring = new Keyring({ type: 'sr25519' })

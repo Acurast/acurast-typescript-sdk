@@ -1,7 +1,4 @@
-import {
-  DEFAULT_REWARD,
-  convertConfigToJob,
-} from '../src/chain/config-to-job.js'
+import { DEFAULT_REWARD, convertConfigToJob } from '../src/chain/config-to-job.js'
 import {
   AcurastProjectConfig,
   AssignmentStrategyVariant,

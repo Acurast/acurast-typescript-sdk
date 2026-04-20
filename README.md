@@ -4,11 +4,11 @@ A TypeScript library to interact with the Acurast network.
 
 ## Packages
 
-| Name                                                                   | Description                                                       |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [@acurast/sdk](./packages/acurast-sdk/)                                 | Programmatic SDK for interacting with the Acurast Cloud           |
-| [@acurast/cli](https://github.com/Acurast/acurast-cli)                  | Command-line interface for deploying and managing Acurast jobs    |
-| [@acurast/dapp](./packages/acurast-dapp/)                               | ⚠️ Deprecated — tools useful in dApp development                  |
+| Name                                                                    | Description                                                           |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [@acurast/sdk](./packages/acurast-sdk/)                                 | Programmatic SDK for interacting with the Acurast Cloud               |
+| [@acurast/cli](https://github.com/Acurast/acurast-cli)                  | Command-line interface for deploying and managing Acurast jobs        |
+| [@acurast/dapp](./packages/acurast-dapp/)                               | ⚠️ Deprecated — tools useful in dApp development                      |
 | [@acurast/transport-websocket](./packages/acurast-transport-websocket/) | ⚠️ Deprecated — implementation of the Acurast P2P WebSocket Transport |
 
 This repo also contains [`@acurast/devtools`](./packages/acurast-devtools/), an internal package used by the CLI. It is not intended for direct consumption.

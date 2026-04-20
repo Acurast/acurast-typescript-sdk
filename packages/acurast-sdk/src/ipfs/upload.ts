@@ -9,9 +9,7 @@ export interface IpfsUploadOptions {
   apiKey: string
 }
 
-export type UploadScriptInput =
-  | { file: string }
-  | { script: string }
+export type UploadScriptInput = { file: string } | { script: string }
 
 /**
  * Pin a JS bundle to IPFS and return an `ipfs://<cid>` URI.
@@ -22,7 +20,7 @@ export type UploadScriptInput =
  */
 export const uploadScript = async (
   input: UploadScriptInput,
-  options: IpfsUploadOptions
+  options: IpfsUploadOptions,
 ): Promise<string> => {
   const tempFile = 'temp_script.js'
 
@@ -46,7 +44,7 @@ export const uploadScript = async (
           ...form.getHeaders(),
           Authorization: `Bearer ${options.apiKey}`,
         },
-      }
+      },
     )
 
     fs.unlinkSync(tempFile)

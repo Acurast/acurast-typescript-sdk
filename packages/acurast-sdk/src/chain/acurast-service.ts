@@ -1,10 +1,6 @@
 import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
-import type {
-  SubmittableExtrinsic,
-  UnsubscribePromise,
-  VoidFn,
-} from '@polkadot/api/types'
+import type { SubmittableExtrinsic, UnsubscribePromise, VoidFn } from '@polkadot/api/types'
 import type { DispatchError } from '@polkadot/types/interfaces'
 import type { Event } from '@polkadot/types/interfaces/system'
 import type { KeyringPair } from '@polkadot/keyring/types'
@@ -34,10 +30,7 @@ export interface EventSub<T> {
   sub: (data: T) => void
 }
 
-const getHumanReadableError = (
-  api: ApiPromise,
-  dispatchError: DispatchError | undefined
-) => {
+const getHumanReadableError = (api: ApiPromise, dispatchError: DispatchError | undefined) => {
   if (!dispatchError) {
     return
   }
@@ -121,14 +114,11 @@ export class AcurastService {
 
   public async getAllJobs(): Promise<Job[]> {
     const api = await this.connect()
-    const jobEntries =
-      await api.query['acurast']['storedJobRegistration'].entries()
+    const jobEntries = await api.query['acurast']['storedJobRegistration'].entries()
     return jobEntries.map(([key, value]) => {
       const origin = api.createType('AcurastCommonMultiOrigin', key.args.at(0)!)
       const id = api.createType('u128', key.args.at(1)!)
-      const job = api
-        .createType('Option<AcurastCommonJobRegistration>', value)
-        .unwrap()
+      const job = api.createType('Option<AcurastCommonJobRegistration>', value).unwrap()
       return {
         id: [this.codecToMultiOrigin(origin), id.toNumber()],
         registration: this.codecToJobRegistration(job),
@@ -141,19 +131,17 @@ export class AcurastService {
     this.eventSubs.set(subId, eventSub)
     if (this.unsubEvents === undefined) {
       const api = await this.connect()
-      this.unsubEvents = (await (api.query.system as any).events(
-        (events: any) => {
-          const subs = Array.from(this.eventSubs.values())
-          events.forEach((record: any) => {
-            const { event } = record
-            for (const sub of subs) {
-              if (sub.filter(event)) {
-                sub.sub(sub.map(event))
-              }
+      this.unsubEvents = (await (api.query.system as any).events((events: any) => {
+        const subs = Array.from(this.eventSubs.values())
+        events.forEach((record: any) => {
+          const { event } = record
+          for (const sub of subs) {
+            if (sub.filter(event)) {
+              sub.sub(sub.map(event))
             }
-          })
-        }
-      )) as VoidFn
+          }
+        })
+      })) as VoidFn
     }
     return () => {
       this.eventSubs.delete(subId)
@@ -165,12 +153,11 @@ export class AcurastService {
   }
 
   public async subscribeToJobAssignmentEvents(
-    sub: (assignment: JobAssignmentInfo) => void
+    sub: (assignment: JobAssignmentInfo) => void,
   ): Promise<UnsubEvent> {
     const eventSub: EventSub<JobAssignmentInfo> = {
       filter: (event) =>
-        event.section === 'acurastMarketplace' &&
-        event.method === 'JobRegistrationAssigned',
+        event.section === 'acurastMarketplace' && event.method === 'JobRegistrationAssigned',
       map: (event) => ({
         id: this.codectToJobId(event.data.at(0)!),
         processor: event.data.at(1)!.toString(),
@@ -181,24 +168,18 @@ export class AcurastService {
     return await this.subscribeToEvent(eventSub)
   }
 
-  public async assignedProcessors(
-    jobIds: JobId[]
-  ): Promise<Map<string, [JobId, string[]]>> {
+  public async assignedProcessors(jobIds: JobId[]): Promise<Map<string, [JobId, string[]]>> {
     const api = await this.connect()
     const result = new Map<string, [JobId, string[]]>()
     const assignedProcessors = (
       await Promise.all(
-        jobIds.map((jobId) =>
-          api.query['acurastMarketplace']['assignedProcessors'].entries(jobId)
-        )
+        jobIds.map((jobId) => api.query['acurastMarketplace']['assignedProcessors'].entries(jobId)),
       )
     ).flat()
     assignedProcessors.forEach(([key, _]) => {
       const jobIdJSON: any = key.args[0].toJSON()
       const jobId: JobId = [
-        jobIdJSON[0].acurast
-          ? { acurast: jobIdJSON[0].acurast }
-          : { tezos: jobIdJSON[0].tezos },
+        jobIdJSON[0].acurast ? { acurast: jobIdJSON[0].acurast } : { tezos: jobIdJSON[0].tezos },
         jobIdJSON[1],
       ]
       const processor = api.createType('AccountId', key.args[1])
@@ -217,15 +198,12 @@ export class AcurastService {
     return `Tezos#${jobId[1]}`
   }
 
-  public async jobAssignments(
-    keys: [string, JobId][]
-  ): Promise<JobAssignmentInfo[]> {
+  public async jobAssignments(keys: [string, JobId][]): Promise<JobAssignmentInfo[]> {
     const api = await this.connect()
-    const assignments =
-      await api.query['acurastMarketplace']['storedMatches'].multi(keys)
+    const assignments = await api.query['acurastMarketplace']['storedMatches'].multi(keys)
     const values = api.registry.createType(
       'Vec<Option<PalletAcurastMarketplaceAssignment>>',
-      assignments
+      assignments,
     )
     const result: (JobAssignmentInfo | undefined)[] = values
       .map((value, index) => {
@@ -243,10 +221,7 @@ export class AcurastService {
     return result as JobAssignmentInfo[]
   }
 
-  private jobEnvironmentToCodec(
-    api: ApiPromise,
-    jobEnvironment: JobEnvironmentEncrypted
-  ): Codec {
+  private jobEnvironmentToCodec(api: ApiPromise, jobEnvironment: JobEnvironmentEncrypted): Codec {
     const publicKey = `0x${jobEnvironment.publicKey}`
     const variables = jobEnvironment.variables.map((variable) => {
       const key = `0x${Buffer.from(variable.key).toString('hex')}`
@@ -263,26 +238,19 @@ export class AcurastService {
   public async setEnvironment(
     keyring: KeyringPair,
     jobId: number,
-    jobEnvironment: JobEnvironmentEncrypted
+    jobEnvironment: JobEnvironmentEncrypted,
   ): Promise<Hash> {
     const api = await this.connect()
-    const acurastJobEnvironment = this.jobEnvironmentToCodec(
-      api,
-      jobEnvironment
-    )
+    const acurastJobEnvironment = this.jobEnvironmentToCodec(api, jobEnvironment)
     return this.signAndSend(api, keyring, [
-      api.tx['acurast']['setEnvironment'](
-        jobId,
-        keyring.address,
-        acurastJobEnvironment
-      ),
+      api.tx['acurast']['setEnvironment'](jobId, keyring.address, acurastJobEnvironment),
     ])
   }
 
   public async setEnvironments(
     keyring: KeyringPair,
     jobId: number,
-    jobEnvironments: JobEnvironmentsEncrypted
+    jobEnvironments: JobEnvironmentsEncrypted,
   ): Promise<Hash> {
     const api = await this.connect()
     const acurastJobEnvironments = jobEnvironments.map((x) => [
@@ -295,14 +263,9 @@ export class AcurastService {
     ])
   }
 
-  public async deregisterJob(
-    keyring: KeyringPair,
-    localJobId: number
-  ): Promise<Hash> {
+  public async deregisterJob(keyring: KeyringPair, localJobId: number): Promise<Hash> {
     const api = await this.connect()
-    return this.signAndSend(api, keyring, [
-      api.tx['acurast']['deregister'](localJobId),
-    ])
+    return this.signAndSend(api, keyring, [api.tx['acurast']['deregister'](localJobId)])
   }
 
   private codecToMultiOrigin(codec: Codec): MultiOrigin {
@@ -315,7 +278,7 @@ export class AcurastService {
   private async signAndSend(
     api: ApiPromise,
     keyring: KeyringPair,
-    calls: SubmittableExtrinsic<'promise', any>[]
+    calls: SubmittableExtrinsic<'promise', any>[],
   ): Promise<Hash> {
     let call: SubmittableExtrinsic<'promise', any>
     if (calls.length > 1) {
@@ -346,9 +309,7 @@ export class AcurastService {
   private codectToJobId(codec: Codec): JobId {
     const jobIdJSON = codec.toJSON() as any
     return [
-      jobIdJSON[0].acurast
-        ? { acurast: jobIdJSON[0].acurast }
-        : { tezos: jobIdJSON[0].tezos },
+      jobIdJSON[0].acurast ? { acurast: jobIdJSON[0].acurast } : { tezos: jobIdJSON[0].tezos },
       jobIdJSON[1],
     ]
   }
@@ -356,9 +317,7 @@ export class AcurastService {
   private codecToJobRegistration(codec: Codec): any {
     const data = codec as any
     return {
-      script: new TextDecoder().decode(
-        Buffer.from(data.script.toHex().slice(2), 'hex')
-      ),
+      script: new TextDecoder().decode(Buffer.from(data.script.toHex().slice(2), 'hex')),
       allowedSources: data.allowedSources.unwrapOr(undefined)?.toJSON(),
       allowOnlyVerifiedSources: data.allowOnlyVerifiedSources.toJSON(),
       schedule: {
@@ -375,14 +334,12 @@ export class AcurastService {
       extra: {
         requirements: {
           assignmentStrategy: this.codecToAssignmentStrategy(
-            data.extra.requirements.assignmentStrategy
+            data.extra.requirements.assignmentStrategy,
           ),
           slots: data.extra.requirements.slots.toNumber(),
           reward: new BigNumber(data.extra.requirements.reward.toBigInt()),
           minReputation: (() => {
-            const rep = data.extra.requirements.minReputation
-              .unwrapOr(undefined)
-              ?.toBigInt()
+            const rep = data.extra.requirements.minReputation.unwrapOr(undefined)?.toBigInt()
             if (rep) {
               return new BigNumber(rep)
             }
@@ -407,9 +364,7 @@ export class AcurastService {
       return { variant: AssignmentStrategyVariant.Competing }
     }
 
-    throw new Error(
-      `unsupported AssignmentStrategy variant: ${codec.toString()}`
-    )
+    throw new Error(`unsupported AssignmentStrategy variant: ${codec.toString()}`)
   }
 
   private codecToJobAssignment(codec: Codec): JobAssignment {

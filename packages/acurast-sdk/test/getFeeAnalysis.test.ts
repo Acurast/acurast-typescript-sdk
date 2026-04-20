@@ -4,7 +4,7 @@ import { AssignmentStrategyVariant } from '../src/types/project.js'
 
 describe('getFeeAnalysis', () => {
   const createBasicConfig = (
-    overrides: Partial<AcurastProjectConfig> = {}
+    overrides: Partial<AcurastProjectConfig> = {},
   ): AcurastProjectConfig => ({
     projectName: 'test-project',
     fileUrl: './examples/test.js',
@@ -214,18 +214,10 @@ describe('getFeeAnalysis', () => {
     expect(result.numberOfExecutions).toBeInstanceOf(require('bignumber.js'))
     expect(result.numberOfReplicas).toBeInstanceOf(require('bignumber.js'))
     expect(result.totalRuns).toBeInstanceOf(require('bignumber.js'))
-    expect(result.excessCostPerExecution).toBeInstanceOf(
-      require('bignumber.js')
-    )
-    expect(result.excessCostPerExecutionPercentage).toBeInstanceOf(
-      require('bignumber.js')
-    )
-    expect(result.maxCostPerExecutionCACU).toBeInstanceOf(
-      require('bignumber.js')
-    )
-    expect(result.maxCostPerExecutionPerReplicaCACU).toBeInstanceOf(
-      require('bignumber.js')
-    )
+    expect(result.excessCostPerExecution).toBeInstanceOf(require('bignumber.js'))
+    expect(result.excessCostPerExecutionPercentage).toBeInstanceOf(require('bignumber.js'))
+    expect(result.maxCostPerExecutionCACU).toBeInstanceOf(require('bignumber.js'))
+    expect(result.maxCostPerExecutionPerReplicaCACU).toBeInstanceOf(require('bignumber.js'))
     expect(result.maxTotalCostCACU).toBeInstanceOf(require('bignumber.js'))
   })
 

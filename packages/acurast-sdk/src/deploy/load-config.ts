@@ -1,8 +1,5 @@
 import fs from 'fs'
-import type {
-  AcurastCliConfig,
-  AcurastProjectConfig,
-} from '../types/project.js'
+import type { AcurastCliConfig, AcurastProjectConfig } from '../types/project.js'
 
 /**
  * Load a named project entry from an `acurast.json` file.
@@ -11,10 +8,12 @@ import type {
  * project is returned. Otherwise an error is thrown listing the available
  * project names.
  */
-export const loadAcurastConfig = (options: {
-  filePath?: string
-  project?: string
-} = {}): AcurastProjectConfig | undefined => {
+export const loadAcurastConfig = (
+  options: {
+    filePath?: string
+    project?: string
+  } = {},
+): AcurastProjectConfig | undefined => {
   const filePath = options.filePath ?? './acurast.json'
   if (!fs.existsSync(filePath)) {
     throw new Error(`${filePath} not found`)
@@ -31,9 +30,7 @@ export const loadAcurastConfig = (options: {
     if (projects.length === 0) {
       throw new Error(`No projects found in ${filePath}`)
     }
-    throw new Error(
-      `Project not specified. Available projects: ${projects.join(', ')}`
-    )
+    throw new Error(`Project not specified. Available projects: ${projects.join(', ')}`)
   }
 
   if (config.projects[options.project]) {

@@ -15,7 +15,9 @@
     "bump:major": "lerna version --no-git-tag-version major --yes",
     "bump:minor": "lerna version --no-git-tag-version minor --yes",
     "bump:patch": "lerna version --no-git-tag-version patch --yes",
-    "bump:beta": "lerna version --no-git-tag-version prerelease --preid beta --yes"
+    "bump:beta": "lerna version --no-git-tag-version prerelease --preid beta --yes",
+    "format": "prettier --write \"packages/*/{src,tests,test}/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"packages/*/{src,tests,test}/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\""
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",

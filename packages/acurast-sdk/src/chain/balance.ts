@@ -1,9 +1,6 @@
 import type { ApiPromise } from '@polkadot/api'
 
-export const getBalance = async (
-  api: ApiPromise,
-  address: string
-): Promise<number> => {
+export const getBalance = async (api: ApiPromise, address: string): Promise<number> => {
   const {
     data: { free: balance },
   } = (await api.query.system.account(address)) as any

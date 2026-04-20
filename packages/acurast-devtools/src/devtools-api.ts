@@ -27,7 +27,7 @@ export interface DevtoolsOptions {
 export function buildDevtoolsUrl(
   devtoolsUrl: string,
   deploymentId: string,
-  viewKey: string
+  viewKey: string,
 ): string {
   return `${devtoolsUrl}/deployment/${deploymentId}?viewKey=${viewKey}`
 }
@@ -48,7 +48,7 @@ async function getEd25519Wallet(mnemonic: string) {
  */
 export async function getDevtoolsViewKey(
   jobId: string,
-  options: DevtoolsOptions
+  options: DevtoolsOptions,
 ): Promise<ViewKeyResponse> {
   const wallet = await getEd25519Wallet(options.mnemonic)
 
@@ -61,7 +61,7 @@ export async function getDevtoolsViewKey(
   const signature = u8aToHex(wallet.sign(encoder.encode(message))).slice(2)
 
   options.logger?.debug(
-    `DevTools view-key request: POST ${options.apiUrl}/v1/auth/view-key jobId=${jobId} publicKey=${publicKeyHex}`
+    `DevTools view-key request: POST ${options.apiUrl}/v1/auth/view-key jobId=${jobId} publicKey=${publicKeyHex}`,
   )
 
   try {
@@ -76,19 +76,13 @@ export async function getDevtoolsViewKey(
           'X-Timestamp': timestamp,
         },
         timeout: 10_000,
-      }
+      },
     )
 
     return response.data
   } catch (error: any) {
-    const detail = error.response?.data
-      ? JSON.stringify(error.response.data)
-      : error.message
-    options.logger?.error(
-      `DevTools view-key failed: ${error.response?.status} ${detail}`
-    )
-    throw new Error(
-      `DevTools API ${error.response?.status ?? 'error'}: ${detail}`
-    )
+    const detail = error.response?.data ? JSON.stringify(error.response.data) : error.message
+    options.logger?.error(`DevTools view-key failed: ${error.response?.status} ${detail}`)
+    throw new Error(`DevTools API ${error.response?.status ?? 'error'}: ${detail}`)
   }
 }

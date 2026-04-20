@@ -5,7 +5,7 @@ export declare class WebSocketTransportClient extends AbstractWebSocketTransport
     urls: string[],
     connectionTimeoutMillis: number,
     maxPayloadLogLength?: number,
-    enableLogging?: boolean
+    enableLogging?: boolean,
   )
 }
 
@@ -21,7 +21,7 @@ export {
   createChallengeMessage,
   createResponseMessage,
   createAcceptedMessage,
-  createPayloadMessage
+  createPayloadMessage,
 } from './message/v1-messages'
 export { parseMessage } from './message/parser/parser'
 export { forgeMessage } from './message/forger/forger'

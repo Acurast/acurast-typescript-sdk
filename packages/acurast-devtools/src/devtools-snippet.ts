@@ -34,7 +34,9 @@
         body,
         { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
         () => {},
-        (error: string) => { originalConsole.error('[devtools] buffered log post failed:', error) }
+        (error: string) => {
+          originalConsole.error('[devtools] buffered log post failed:', error)
+        },
       )
     }
   }
@@ -68,7 +70,7 @@
       },
       (error: string) => {
         originalConsole.error('[devtools] auth failed:', error)
-      }
+      },
     )
   } catch (e: any) {
     originalConsole.error('[devtools] auth setup failed:', e?.message ?? String(e))
@@ -86,7 +88,13 @@
 
     if (now - rateBucketStart >= RATE_LIMIT_WINDOW_MS) {
       if (dropped > 0) {
-        enqueue([{ type: 'warn', data: `[devtools] rate limit ended: ${dropped} log(s) were dropped`, timestamp: now }])
+        enqueue([
+          {
+            type: 'warn',
+            data: `[devtools] rate limit ended: ${dropped} log(s) were dropped`,
+            timestamp: now,
+          },
+        ])
       }
       rateBucketStart = now
       rateBucketCount = 0
@@ -124,7 +132,9 @@
         body,
         { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
         () => {},
-        (error: string) => { originalConsole.error('[devtools] log post failed:', error) }
+        (error: string) => {
+          originalConsole.error('[devtools] log post failed:', error)
+        },
       )
     } else {
       pendingLogs.push(body)
@@ -136,8 +146,14 @@
     filename: string,
     content: string,
     mimeType: string,
-    onSuccess: (fileInfo: { id: number; filename: string; mimeType: string; fileSize: number; createdAt: string }) => void,
-    onError: (error: string) => void
+    onSuccess: (fileInfo: {
+      id: number
+      filename: string
+      mimeType: string
+      fileSize: number
+      createdAt: string
+    }) => void,
+    onError: (error: string) => void,
   ) => {
     if (!apiKey) {
       onError('[devtools] file upload failed: not authenticated yet')
@@ -156,7 +172,7 @@
       body: formData,
     })
       .then((res: Response) =>
-        res.text().then((text: string) => ({ ok: res.ok, status: res.status, text }))
+        res.text().then((text: string) => ({ ok: res.ok, status: res.status, text })),
       )
       .then(({ ok, status, text }: { ok: boolean; status: number; text: string }) => {
         if (!ok) {
@@ -177,9 +193,7 @@
   // Expose _DEVTOOLS_ global
   ;(globalThis as any)._DEVTOOLS_ = { uploadFile }
 
-  for (const level of Object.keys(originalConsole) as Array<
-    keyof typeof originalConsole
-  >) {
+  for (const level of Object.keys(originalConsole) as Array<keyof typeof originalConsole>) {
     ;(console as any)[level] = (...args: unknown[]) => {
       originalConsole[level](...(args as [any, ...any[]]))
       sendLog(level, args)

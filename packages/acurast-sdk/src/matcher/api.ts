@@ -7,9 +7,7 @@ import {
 
 const TIMEOUT_MS = 10_000
 
-export type ApiResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string }
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
 export interface MatchCheckResult {
   matchable: boolean
@@ -39,7 +37,7 @@ let rpcId = 0
 async function jsonRpcCall<T>(
   url: string,
   method: string,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ): Promise<ApiResult<T>> {
   try {
     const response = await axios.post(
@@ -53,14 +51,13 @@ async function jsonRpcCall<T>(
       {
         headers: { 'Content-Type': 'application/json' },
         timeout: TIMEOUT_MS,
-      }
+      },
     )
 
     if (response.data.error) {
       return {
         ok: false,
-        error:
-          response.data.error.message ?? JSON.stringify(response.data.error),
+        error: response.data.error.message ?? JSON.stringify(response.data.error),
       }
     }
 
@@ -77,7 +74,7 @@ async function jsonRpcCall<T>(
 export function jobToMatchCheckParams(
   config: AcurastProjectConfig,
   job: JobRegistration,
-  accountId: string
+  accountId: string,
 ): Record<string, unknown> {
   const minProcessorVersion =
     job.extra.requirements.processorVersion?.min.map((v) => ({
@@ -98,10 +95,8 @@ export function jobToMatchCheckParams(
     min_reputation: config.minProcessorReputation || null,
     min_processor_version: minProcessorVersion,
     min_metrics: null,
-    requires_encryption:
-      config.requiredModules?.includes(RequiredModules.DataEncryption) ?? false,
-    requires_llm:
-      config.requiredModules?.includes(RequiredModules.LLM) ?? false,
+    requires_encryption: config.requiredModules?.includes(RequiredModules.DataEncryption) ?? false,
+    requires_llm: config.requiredModules?.includes(RequiredModules.LLM) ?? false,
     only_verified: config.onlyAttestedDevices,
   }
 }
@@ -110,14 +105,10 @@ export async function checkMatch(
   matcherUrl: string,
   config: AcurastProjectConfig,
   job: JobRegistration,
-  accountId: string
+  accountId: string,
 ): Promise<ApiResult<MatchCheckResult>> {
   const params = jobToMatchCheckParams(config, job, accountId)
-  return jsonRpcCall<MatchCheckResult>(
-    `${matcherUrl}/matches`,
-    'check',
-    params
-  )
+  return jsonRpcCall<MatchCheckResult>(`${matcherUrl}/matches`, 'check', params)
 }
 
 export async function checkMatchWithReward(
@@ -125,49 +116,42 @@ export async function checkMatchWithReward(
   config: AcurastProjectConfig,
   job: JobRegistration,
   accountId: string,
-  reward: string
+  reward: string,
 ): Promise<ApiResult<MatchCheckResult>> {
   const params = jobToMatchCheckParams(config, job, accountId)
   params.reward = reward
-  return jsonRpcCall<MatchCheckResult>(
-    `${matcherUrl}/matches`,
-    'check',
-    params
-  )
+  return jsonRpcCall<MatchCheckResult>(`${matcherUrl}/matches`, 'check', params)
 }
 
 export async function getAveragePrice(
   matcherUrl: string,
   duration: number,
-  maxAge: number = 60
+  maxAge: number = 60,
 ): Promise<ApiResult<AveragePriceResult>> {
-  return jsonRpcCall<AveragePriceResult>(
-    `${matcherUrl}/processors`,
-    'average_price',
-    { 'max-age': maxAge, duration }
-  )
+  return jsonRpcCall<AveragePriceResult>(`${matcherUrl}/processors`, 'average_price', {
+    'max-age': maxAge,
+    duration,
+  })
 }
 
 export async function getPriceDistribution(
   matcherUrl: string,
   duration: number,
   buckets: number = 10,
-  maxAge: number = 60
+  maxAge: number = 60,
 ): Promise<ApiResult<PriceDistributionResult>> {
-  return jsonRpcCall<PriceDistributionResult>(
-    `${matcherUrl}/processors`,
-    'price_distribution',
-    { 'max-age': maxAge, duration, buckets }
-  )
+  return jsonRpcCall<PriceDistributionResult>(`${matcherUrl}/processors`, 'price_distribution', {
+    'max-age': maxAge,
+    duration,
+    buckets,
+  })
 }
 
 export async function getProcessorCount(
   matcherUrl: string,
-  maxAge: number = 60
+  maxAge: number = 60,
 ): Promise<ApiResult<ProcessorCountResult>> {
-  return jsonRpcCall<ProcessorCountResult>(
-    `${matcherUrl}/processors`,
-    'count',
-    { 'max-age': maxAge }
-  )
+  return jsonRpcCall<ProcessorCountResult>(`${matcherUrl}/processors`, 'count', {
+    'max-age': maxAge,
+  })
 }

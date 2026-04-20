@@ -27,7 +27,7 @@ export async function injectDevtoolsSnippet(
   zipPath: string,
   entrypoint: string,
   devtoolsApiUrl: string,
-  snippetDir?: string
+  snippetDir?: string,
 ): Promise<string> {
   const dir = snippetDir ?? selfDir()
   const snippetPath = join(dir, 'devtools-snippet.js')
@@ -46,7 +46,7 @@ export async function injectDevtoolsSnippet(
 
   if (!entry) {
     throw new Error(
-      `Could not find entrypoint "${entrypoint}" in bundle to inject devtools snippet`
+      `Could not find entrypoint "${entrypoint}" in bundle to inject devtools snippet`,
     )
   }
 

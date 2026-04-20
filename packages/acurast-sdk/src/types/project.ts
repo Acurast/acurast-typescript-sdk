@@ -1,9 +1,4 @@
-import type {
-  EnvVar,
-  Job,
-  JobEnvironmentsEncrypted,
-  JobId,
-} from './env.js'
+import type { EnvVar, Job, JobEnvironmentsEncrypted, JobId } from './env.js'
 
 export interface AcurastProjectConfig {
   // The name of the project.
@@ -190,14 +185,14 @@ export class DeploymentError extends Error {
   constructor(
     messageOrError: unknown,
     public readonly code: string,
-    public readonly details?: any
+    public readonly details?: any,
   ) {
     super(
       messageOrError instanceof Error
         ? messageOrError.message
         : typeof messageOrError === 'string'
           ? messageOrError
-          : JSON.stringify(messageOrError)
+          : JSON.stringify(messageOrError),
     )
     this.name = 'DeploymentError'
   }

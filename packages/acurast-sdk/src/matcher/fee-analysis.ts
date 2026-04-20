@@ -4,40 +4,32 @@ import type { AcurastProjectConfig } from '../types/project.js'
 import { suggestCostPerExecution } from './suggest-cost.js'
 
 const ACURAST_DECIMALS: number = 12
-export const toCacu = (satoshi: BigNumber) =>
-  satoshi.shiftedBy(-ACURAST_DECIMALS)
+export const toCacu = (satoshi: BigNumber) => satoshi.shiftedBy(-ACURAST_DECIMALS)
 
 export const getFeeAnalysis = (config: AcurastProjectConfig) => {
   const job = convertConfigToJob(config)
 
   const suggestedCostPerExecution = BigNumber(
-    suggestCostPerExecution(job.schedule.duration, job.storage)
+    suggestCostPerExecution(job.schedule.duration, job.storage),
   )
 
   const maxCostPerExecution = BigNumber(config.maxCostPerExecution)
   const suggestedCostPerExecutionBN = BigNumber(suggestedCostPerExecution)
 
-  const excessCostPerExecutionBN = maxCostPerExecution.minus(
-    suggestedCostPerExecutionBN
-  )
+  const excessCostPerExecutionBN = maxCostPerExecution.minus(suggestedCostPerExecutionBN)
 
   const excessCostPerExecutionPercentage = excessCostPerExecutionBN.dividedBy(
-    suggestedCostPerExecutionBN
+    suggestedCostPerExecutionBN,
   )
 
   const numberOfExecutions = BigNumber(
-    config.execution.type === 'onetime'
-      ? 1
-      : config.execution.numberOfExecutions
+    config.execution.type === 'onetime' ? 1 : config.execution.numberOfExecutions,
   )
 
   const numberOfReplicas = BigNumber(config.numberOfReplicas)
 
-  const maxCostPerExecutionPerReplica =
-    maxCostPerExecution.times(numberOfExecutions)
-  const maxCostPerExecutionPerReplicaCACU = toCacu(
-    maxCostPerExecutionPerReplica
-  )
+  const maxCostPerExecutionPerReplica = maxCostPerExecution.times(numberOfExecutions)
+  const maxCostPerExecutionPerReplicaCACU = toCacu(maxCostPerExecutionPerReplica)
 
   const totalCost = numberOfReplicas.times(maxCostPerExecutionPerReplica)
 

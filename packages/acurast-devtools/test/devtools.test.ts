@@ -18,18 +18,12 @@ describe('devtools snippet injection', () => {
     rmSync(tempDir, { recursive: true, force: true })
   })
 
-  function createTestZip(
-    entrypoint: string,
-    entrypointContent: string
-  ): string {
+  function createTestZip(entrypoint: string, entrypointContent: string): string {
     const zipPath = join(tempDir, 'test-bundle.zip')
     const zip = new AdmZip()
     zip.addFile(
       'manifest.json',
-      Buffer.from(
-        JSON.stringify({ name: 'test', version: 1, entrypoint }),
-        'utf-8'
-      )
+      Buffer.from(JSON.stringify({ name: 'test', version: 1, entrypoint }), 'utf-8'),
     )
     zip.addFile(entrypoint, Buffer.from(entrypointContent, 'utf-8'))
     zip.writeZip(zipPath)
@@ -44,7 +38,7 @@ describe('devtools snippet injection', () => {
       zipPath,
       'index.js',
       'https://api.devtools.acurast.com',
-      SNIPPET_DIR
+      SNIPPET_DIR,
     )
 
     const zip = new AdmZip(zipPath)
@@ -54,21 +48,14 @@ describe('devtools snippet injection', () => {
     expect(content).toContain(originalCode)
 
     // Snippet should be prepended (original code at the end)
-    expect(content.indexOf('httpPOST')).toBeLessThan(
-      content.indexOf(originalCode)
-    )
+    expect(content.indexOf('httpPOST')).toBeLessThan(content.indexOf(originalCode))
   })
 
   it('should replace the API URL placeholder', async () => {
     const zipPath = createTestZip('index.js', '// user code')
     const apiUrl = 'https://custom-api.example.com'
 
-    await injectDevtoolsSnippet(
-      zipPath,
-      'index.js',
-      apiUrl,
-      SNIPPET_DIR
-    )
+    await injectDevtoolsSnippet(zipPath, 'index.js', apiUrl, SNIPPET_DIR)
 
     const zip = new AdmZip(zipPath)
     const content = zip.getEntry('index.js')!.getData().toString('utf-8')
@@ -84,7 +71,7 @@ describe('devtools snippet injection', () => {
       zipPath,
       'index.js',
       'https://api.devtools.acurast.com',
-      SNIPPET_DIR
+      SNIPPET_DIR,
     )
 
     const zip = new AdmZip(zipPath)
@@ -102,8 +89,8 @@ describe('devtools snippet injection', () => {
         zipPath,
         'nonexistent.js',
         'https://api.devtools.acurast.com',
-        SNIPPET_DIR
-      )
+        SNIPPET_DIR,
+      ),
     ).rejects.toThrow('Could not find entrypoint')
   })
 
@@ -119,13 +106,11 @@ describe('devtools snippet injection', () => {
       zipPath,
       'index.js',
       'https://api.devtools.acurast.com',
-      SNIPPET_DIR
+      SNIPPET_DIR,
     )
 
     const result = new AdmZip(zipPath)
-    const manifest = JSON.parse(
-      result.getEntry('manifest.json')!.getData().toString('utf-8')
-    )
+    const manifest = JSON.parse(result.getEntry('manifest.json')!.getData().toString('utf-8'))
     expect(manifest.entrypoint).toBe('index.js')
 
     const helper = result.getEntry('lib/helper.js')!.getData().toString('utf-8')
@@ -139,7 +124,7 @@ describe('devtools snippet injection', () => {
       zipPath,
       'index.js',
       'https://api.devtools.acurast.com',
-      SNIPPET_DIR
+      SNIPPET_DIR,
     )
 
     const zip = new AdmZip(zipPath)

@@ -60,9 +60,7 @@ describe('suggestCostPerExecution', () => {
     const duration = null as any
     const storage = 1024
 
-    expect(() => suggestCostPerExecution(duration, storage)).toThrow(
-      'Invalid duration'
-    )
+    expect(() => suggestCostPerExecution(duration, storage)).toThrow('Invalid duration')
   })
 
   test('should handle negative duration (edge case)', () => {

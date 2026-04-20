@@ -9,7 +9,7 @@ const DEFAULT_MATCHER_FEE: BigNumber = new BigNumber('30000000000') // 0.03 ACU
 export const suggestCostPerExecution = (
   duration: number,
   storage: number,
-  humanReadable: boolean = false
+  humanReadable: boolean = false,
 ): string => {
   if (duration === null) {
     throw Error('Invalid duration')

@@ -1,22 +1,17 @@
 import type { ApiPromise } from '@polkadot/api'
 import type { Codec } from '@polkadot/types/types'
 import { BigNumber } from 'bignumber.js'
-import type {
-  JobAssignment,
-  JobAssignmentInfo,
-  JobId,
-} from '../types/env.js'
+import type { JobAssignment, JobAssignmentInfo, JobId } from '../types/env.js'
 
 export const jobAssignments = async (
   api: ApiPromise,
-  keys: [string, JobId][]
+  keys: [string, JobId][],
 ): Promise<JobAssignmentInfo[]> => {
-  const assignments =
-    await api.query['acurastMarketplace']['storedMatches'].multi(keys)
+  const assignments = await api.query['acurastMarketplace']['storedMatches'].multi(keys)
 
   const values = api.registry.createType(
     'Vec<Option<PalletAcurastMarketplaceAssignment>>',
-    assignments
+    assignments,
   )
   const result: (JobAssignmentInfo | undefined)[] = values
     .map((value, index) => {
@@ -61,7 +56,7 @@ const codecToJobAssignment = (codec: Codec): JobAssignment => {
 
 export const getAcknowledgedProcessors = async (
   api: ApiPromise,
-  jobId: JobId
+  jobId: JobId,
 ): Promise<JobAssignmentInfo[]> => {
   const assignedProcessors =
     await api.query['acurastMarketplace']['assignedProcessors'].entries(jobId)
