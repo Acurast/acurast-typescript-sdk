@@ -57,10 +57,14 @@ export const zipFolder = async (
   const zipPath = `${outputFolder}/${deploymentName}.zip`
   logger.debug(`zipPath: ${zipPath}`)
 
-  zip.writeZip(zipPath, (error) => {
-    if (error) {
-      logger.error(`Error writing zip file: ${error.name} ${error.message}`)
-    }
+  await new Promise<void>((resolve, reject) => {
+    zip.writeZip(zipPath, (error) => {
+      if (error) {
+        reject(new Error(`Failed to write zip to ${zipPath}: ${error.message}`))
+      } else {
+        resolve()
+      }
+    })
   })
 
   return { zipPath }
