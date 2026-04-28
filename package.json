@@ -2,7 +2,7 @@
   "name": "acurast-typescript-sdk",
   "version": "1.0.0",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
-  "license": "ISC",
+  "license": "MIT",
   "private": true,
   "workspaces": [
     "packages/*"

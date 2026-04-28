@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "Acurast DevTools client and bundle snippet injection.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
