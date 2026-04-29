@@ -16,12 +16,9 @@ export const transferEditor = async (
   api: ApiPromise,
   injector: KeyringPair,
   deploymentId: [MultiOrigin, string, number],
-  newEditor: string | null
+  newEditor: string | null,
 ): Promise<string> => {
-  const jobId = [
-    { acurast: deploymentId[1] },
-    deploymentId[2],
-  ]
+  const jobId = [{ acurast: deploymentId[1] }, deploymentId[2]]
 
   const newEditorOption = newEditor === null ? { None: null } : { Some: newEditor }
 

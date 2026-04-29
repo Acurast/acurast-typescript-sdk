@@ -16,16 +16,13 @@ export const editScript = async (
   api: ApiPromise,
   injector: KeyringPair,
   deploymentId: [MultiOrigin, string, number],
-  script: string
+  script: string,
 ): Promise<string> => {
   if (!script.startsWith('ipfs://')) {
     throw new Error('Script must be an IPFS hash starting with "ipfs://"')
   }
 
-  const jobId = [
-    { acurast: deploymentId[1] },
-    deploymentId[2],
-  ]
+  const jobId = [{ acurast: deploymentId[1] }, deploymentId[2]]
 
   const ipfsHash = script.replace('ipfs://', '')
   const scriptBytes = `0x${Buffer.from(ipfsHash, 'utf8').toString('hex')}`

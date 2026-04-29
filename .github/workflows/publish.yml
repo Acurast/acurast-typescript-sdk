@@ -12,6 +12,13 @@ on:
           - beta
           - stable
 
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
