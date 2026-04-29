@@ -2,6 +2,8 @@
 
 [![npm](https://img.shields.io/npm/v/@acurast/transport-websocket.svg?colorB=brightgreen)](https://www.npmjs.com/package/@acurast/transport-websocket)
 
+> ⚠️ **Deprecated:** This package is deprecated and no longer maintained.
+
 An implementation of the Acurast P2P WebSocket Transport.
 
 ## Installation

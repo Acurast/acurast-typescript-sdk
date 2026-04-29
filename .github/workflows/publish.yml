@@ -1,0 +1,64 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Which release to publish"
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - stable
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - name: Guard stable releases to main
+        if: ${{ inputs.release_type == 'stable' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "Stable releases can only be published from the main branch." >&2
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Test
+        run: yarn test:ci
+
+      - name: Publish beta
+        if: ${{ inputs.release_type == 'beta' }}
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          chmod +x ./npm-ci-publish-beta-only.sh
+          ./npm-ci-publish-beta-only.sh
+
+      - name: Publish stable
+        if: ${{ inputs.release_type == 'stable' }}
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          chmod +x ./npm-ci-publish.sh
+          ./npm-ci-publish.sh

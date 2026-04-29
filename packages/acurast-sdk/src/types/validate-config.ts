@@ -1,0 +1,220 @@
+import { z, type ZodIssue } from 'zod'
+import {
+  AssignmentStrategyVariant,
+  type AcurastProjectConfig,
+  RestartPolicy,
+  DeploymentRuntime,
+  RequiredModules,
+  ScriptMutability,
+  MultiOrigin,
+} from './project.js'
+
+const isAcurastAddress = (val: string) => {
+  // TODO: Add address validation
+  return true
+}
+const isNotAcurastAddressMessage: string = 'Invalid Acurast address'
+
+export const acurastProjectConfigSchema = z.object({
+  projectName: z.string(),
+  fileUrl: z.string(),
+  entrypoint: z.string().optional(),
+  image: z
+    .object({
+      url: z.string(),
+      sha256: z.string(),
+    })
+    .optional(),
+  network: z.union([z.literal('mainnet'), z.literal('canary')]),
+  onlyAttestedDevices: z.boolean(),
+  startAt: z
+    .union([
+      z.object({ msFromNow: z.number().min(0) }),
+      z.object({
+        timestamp: z.union([
+          z
+            .number()
+            .refine(
+              (val) => {
+                const date = new Date(val)
+                return !isNaN(date.getTime())
+              },
+              { message: 'Invalid timestamp' },
+            )
+            .refine(
+              (val) => {
+                return val >= Date.now()
+              },
+              { message: 'Timestamp cannot be in the past' },
+            ),
+          z.string().datetime(),
+        ]),
+      }),
+    ])
+    .optional(),
+  assignmentStrategy: z.union([
+    z.object({
+      type: z.literal(AssignmentStrategyVariant.Single),
+      instantMatch: z
+        .array(
+          z.object({
+            processor: z.string().refine(isAcurastAddress, isNotAcurastAddressMessage),
+            maxAllowedStartDelayInMs: z.number().min(0),
+          }),
+        )
+        .optional(),
+    }),
+    z.object({
+      type: z.literal(AssignmentStrategyVariant.Competing),
+    }),
+  ]),
+  execution: z.union([
+    z
+      .object({
+        type: z.literal('onetime'),
+        maxExecutionTimeInMs: z.number().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal('interval'),
+        intervalInMs: z.number().min(1),
+        numberOfExecutions: z.number().min(1),
+        maxExecutionTimeInMs: z.number().min(1).optional(),
+      })
+      .strict()
+      .refine(
+        (data) => {
+          if (data.maxExecutionTimeInMs === undefined) return true
+          return data.maxExecutionTimeInMs < data.intervalInMs
+        },
+        {
+          message: 'maxExecutionTimeInMs must be less than intervalInMs',
+          path: ['maxExecutionTimeInMs'],
+        },
+      ),
+  ]),
+  maxAllowedStartDelayInMs: z.number().min(0),
+  usageLimit: z.object({
+    maxMemory: z.number().min(0),
+    maxNetworkRequests: z.number().min(0),
+    maxStorage: z.number().min(0),
+  }),
+  numberOfReplicas: z.number().min(1).max(64),
+  requiredModules: z.array(z.nativeEnum(RequiredModules)).optional(),
+  minProcessorReputation: z.number().min(0),
+  maxCostPerExecution: z.number().min(0),
+  includeEnvironmentVariables: z.array(z.string()).optional(),
+  processorWhitelist: z
+    .array(z.string().refine(isAcurastAddress, isNotAcurastAddressMessage))
+    .optional(),
+  minProcessorVersions: z
+    .union([
+      z.object({
+        android: z.union([z.string(), z.number()]),
+        ios: z.union([z.string(), z.number()]).optional(),
+      }),
+      z.object({
+        android: z.union([z.string(), z.number()]).optional(),
+        ios: z.union([z.string(), z.number()]),
+      }),
+      z.object({
+        android: z.union([z.string(), z.number()]),
+        ios: z.union([z.string(), z.number()]),
+      }),
+    ])
+    .optional(),
+  restartPolicy: z.nativeEnum(RestartPolicy).optional(),
+  runtime: z.nativeEnum(DeploymentRuntime).optional(),
+  mutability: z.nativeEnum(ScriptMutability).optional(),
+  reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
+})
+
+const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefine(
+  (data, context) => {
+    if (!data.onlyAttestedDevices) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Note: onlyAttestedDevices is set to false. This means that the deployment will run on all devices, including unattested devices. This is not recommended for production deployments.',
+        path: ['onlyAttestedDevices'],
+      })
+    }
+    if (data.startAt) {
+      if ('msFromNow' in data.startAt) {
+        if (
+          data.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
+          !data.assignmentStrategy.instantMatch &&
+          data.startAt.msFromNow < 300_000
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              'The start time is less than 5 minutes from now. This can lead to the deployment not running.',
+            path: ['startAt', 'msFromNow'],
+          })
+        }
+        if (
+          data.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
+          data.assignmentStrategy.instantMatch &&
+          data.startAt.msFromNow < 120_000
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              'The start time is less than 2 minutes from now. Even with an instantMatch provided, this can lead to the deployment not running.',
+            path: ['startAt', 'msFromNow'],
+          })
+        }
+      }
+      if ('timestamp' in data.startAt) {
+        if (
+          data.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
+          data.assignmentStrategy.instantMatch &&
+          new Date(data.startAt.timestamp).getTime() - Date.now() < 120_000
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              'The start time is less than 5 minutes from now. This can lead to the deployment not running.',
+            path: ['startAt', 'timestamp'],
+          })
+        }
+      }
+    }
+
+    if (data.runtime === DeploymentRuntime.Shell && !data.image) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'image is required when runtime is Shell',
+        path: ['image'],
+      })
+    }
+
+    if (
+      data.execution.type === 'interval' &&
+      data.execution.maxExecutionTimeInMs !== undefined &&
+      data.execution.maxExecutionTimeInMs > data.execution.intervalInMs - 10_000
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Warning: maxExecutionTimeInMs should be at least 10s shorter than intervalInMs to allow enough time between executions.',
+        path: ['execution', 'maxExecutionTimeInMs'],
+      })
+    }
+  },
+)
+
+export const validateConfig = (
+  config: unknown,
+):
+  | { success: true; data: AcurastProjectConfig; notes?: ZodIssue[] }
+  | { success: false; error: any; notes?: ZodIssue[] } => {
+  const result = {
+    ...acurastProjectConfigSchema.safeParse(config),
+    notes: acurastProjectConfigSchemaWithNotes.safeParse(config).error?.issues,
+  }
+
+  return result
+}
