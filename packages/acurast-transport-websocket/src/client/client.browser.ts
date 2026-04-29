@@ -63,7 +63,7 @@ export class BrowserWebSocketTransportClient extends WebSocketTransportClient {
     urls: string[],
     connectionTimeoutMillis: number,
     maxPayloadLogLength: number = 100,
-    enableLogging: boolean = false
+    enableLogging: boolean = false,
   ) {
     super(
       urls,
@@ -71,7 +71,7 @@ export class BrowserWebSocketTransportClient extends WebSocketTransportClient {
       new BrowserWebSocketSession(),
       undefined,
       maxPayloadLogLength,
-      enableLogging
+      enableLogging,
     )
   }
 }

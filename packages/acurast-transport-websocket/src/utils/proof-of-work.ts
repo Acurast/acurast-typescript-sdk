@@ -14,7 +14,11 @@ export function verifyDifficulty(data: Uint8Array, difficulty: Uint8Array): bool
   return true
 }
 
-export function proofOfWork(crypto: Crypto, payload: Uint8Array, difficulty: Uint8Array): Uint8Array {
+export function proofOfWork(
+  crypto: Crypto,
+  payload: Uint8Array,
+  difficulty: Uint8Array,
+): Uint8Array {
   while (true) {
     const nonce: Uint8Array = crypto.getRandomValues(16)
     const difficultyHash = crypto.sha256(Buffer.concat([payload, nonce]))

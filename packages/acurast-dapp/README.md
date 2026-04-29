@@ -2,6 +2,8 @@
 
 [![npm](https://img.shields.io/npm/v/@acurast/dapp.svg?colorB=brightgreen)](https://www.npmjs.com/package/@acurast/dapp)
 
+> ⚠️ **Deprecated:** This package is deprecated and no longer maintained. Please migrate to [`@acurast/sdk`](../acurast-sdk/).
+
 Tools useful in dApp development.
 
 ## Installation
