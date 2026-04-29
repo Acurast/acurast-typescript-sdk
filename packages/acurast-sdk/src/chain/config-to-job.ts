@@ -3,6 +3,7 @@ import {
   AssignmentStrategyVariant,
   DeploymentRuntime,
   type JobRegistration,
+  RequiredModules,
   ScriptMutability,
 } from '../types/project.js'
 import { deviceVersions } from './app-versions.js'
@@ -131,6 +132,13 @@ export const convertConfigToJob = (config: AcurastProjectConfig): JobRegistratio
     throw new Error('Invalid execution type')
   }
 
+  const runtime = config.runtime ?? DeploymentRuntime.NodeJSWithBundle
+  const requiredModules =
+    runtime === DeploymentRuntime.Shell &&
+    !(config.requiredModules ?? []).includes(RequiredModules.Shell)
+      ? [...(config.requiredModules ?? []), RequiredModules.Shell]
+      : config.requiredModules
+
   const assignmentStrategy =
     config.assignmentStrategy.type === AssignmentStrategyVariant.Single
       ? {
@@ -159,7 +167,7 @@ export const convertConfigToJob = (config: AcurastProjectConfig): JobRegistratio
     memory: config.usageLimit.maxMemory,
     networkRequests: config.usageLimit.maxNetworkRequests,
     storage: config.usageLimit.maxStorage,
-    requiredModules: config.requiredModules,
+    requiredModules,
     mutability,
     reuseKeysFrom: config.reuseKeysFrom,
     extra: {
@@ -169,7 +177,7 @@ export const convertConfigToJob = (config: AcurastProjectConfig): JobRegistratio
         reward: rewardPerExecution,
         minReputation: processorReputation,
         processorVersion: minProcessorVersions,
-        runtime: config.runtime ?? DeploymentRuntime.NodeJSWithBundle,
+        runtime,
       },
     },
   }

@@ -88,6 +88,28 @@ import {
 
 Shared TypeScript types used across the SDK.
 
+## Runtimes
+
+Set `runtime` on `AcurastProjectConfig` to pick the execution environment:
+
+- `DeploymentRuntime.NodeJSWithBundle` (default) — Node.js, bundled file deployment.
+- `DeploymentRuntime.NodeJS` — Node.js, single-file deployment.
+- `DeploymentRuntime.Shell` — native binary inside a Linux distro image (PRoot-isolated). Requires `image: { url, sha256 }` on the config; the SDK auto-adds `RequiredModules.Shell` to `requiredModules` and embeds the image reference in `manifest.json`.
+
+```ts
+import { DeploymentRuntime } from '@acurast/sdk/types'
+
+const config = {
+  runtime: DeploymentRuntime.Shell,
+  entrypoint: 'acurast.sh',
+  image: {
+    url: 'https://github.com/termux/proot-distro/releases/download/v4.30.1/ubuntu-questing-aarch64-pd-v4.30.1.tar.xz',
+    sha256: '5ab35b90cd9a9f180656261ba400a135c4c01c2da4b74522118342f985c2d328',
+  },
+  // ...
+}
+```
+
 ## Examples
 
 See the [`examples/`](../../examples/) folder for end-to-end usage.

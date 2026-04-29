@@ -78,7 +78,7 @@ export type JobSchedule = {
   maxStartDelay: number
 }
 
-export type JobModule = 'DataEncryption'
+export type JobModule = 'DataEncryption' | 'LLM' | 'Shell'
 
 export type JobRegistrationExtra = {
   requirements: JobRequirements
@@ -158,7 +158,7 @@ export const CUSTOM_TYPES: RegistryTypes = {
     maxStartDelay: 'u64',
   },
   AcurastCommonJobModule: {
-    _enum: ['DataEncryption'],
+    _enum: ['DataEncryption', 'LLM', 'Shell'],
   },
   PalletAcurastMarketplacePlannedExecution: {
     source: 'AccountId',

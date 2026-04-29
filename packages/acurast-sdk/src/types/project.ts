@@ -14,6 +14,12 @@ export interface AcurastProjectConfig {
   // The file that will be started during execution. Defaults to "index.js"
   entrypoint?: string
 
+  // Linux distro image used by the Shell runtime. Required when runtime is Shell.
+  image?: {
+    url: string
+    sha256: string
+  }
+
   // The network on which the project will be deployed.
   network: 'mainnet' | 'canary'
 
@@ -165,6 +171,7 @@ export enum RestartPolicy {
 export enum DeploymentRuntime {
   NodeJS = 'NodeJS',
   NodeJSWithBundle = 'NodeJSWithBundle',
+  Shell = 'Shell',
 }
 
 export enum ScriptMutability {
@@ -179,6 +186,7 @@ export enum MultiOrigin {
 export enum RequiredModules {
   DataEncryption = 'DataEncryption',
   LLM = 'LLM',
+  Shell = 'Shell',
 }
 
 export class DeploymentError extends Error {

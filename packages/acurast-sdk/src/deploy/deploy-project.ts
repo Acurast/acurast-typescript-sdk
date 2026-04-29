@@ -91,6 +91,7 @@ export const deployProject = async (
         config.projectName,
         entrypoint,
         config.restartPolicy ?? RestartPolicy.OnFailure,
+        config.image,
       ),
       config.projectName,
       logger,

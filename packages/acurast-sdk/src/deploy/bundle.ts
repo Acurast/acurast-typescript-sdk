@@ -12,13 +12,18 @@ export const createManifest = (
   name: string,
   entrypoint: string,
   restartPolicy: RestartPolicy,
+  image?: { url: string; sha256: string },
 ): string => {
-  return JSON.stringify({
+  const manifest: Record<string, unknown> = {
     name,
     version: 1,
     entrypoint,
     restartPolicy,
-  })
+  }
+  if (image != null) {
+    manifest.image = image
+  }
+  return JSON.stringify(manifest)
 }
 
 export const zipFolder = async (
@@ -58,7 +63,7 @@ export const zipFolder = async (
   logger.debug(`zipPath: ${zipPath}`)
 
   zip.writeZip(zipPath, (error) => {
-    if (error) {
+    if (error != null) {
       logger.error(`Error writing zip file: ${error.name} ${error.message}`)
     }
   })

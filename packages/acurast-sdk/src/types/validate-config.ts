@@ -19,6 +19,12 @@ export const acurastProjectConfigSchema = z.object({
   projectName: z.string(),
   fileUrl: z.string(),
   entrypoint: z.string().optional(),
+  image: z
+    .object({
+      url: z.string(),
+      sha256: z.string(),
+    })
+    .optional(),
   network: z.union([z.literal('mainnet'), z.literal('canary')]),
   onlyAttestedDevices: z.boolean(),
   startAt: z
@@ -175,6 +181,14 @@ const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefi
           })
         }
       }
+    }
+
+    if (data.runtime === DeploymentRuntime.Shell && !data.image) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'image is required when runtime is Shell',
+        path: ['image'],
+      })
     }
 
     if (
