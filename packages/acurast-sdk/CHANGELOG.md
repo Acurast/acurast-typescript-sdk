@@ -1,28 +1,22 @@
 # Changelog
 
-## Unreleased
+## 1.1.1
 
-### Changed
+### Added
 
-- Removed matcher `list_processors` preview (`fetchMatchingProcessorsPreview` removed from `@acurast/sdk/matcher`).
-- Added `@acurast/sdk/chain` helpers `jobIdFromChainJson` and `listAssignedProcessorAddressesForJob` (reads `acurastMarketplace.assignedProcessors` map entries; processor SS58 from key, value ignored).
-- `registerJob` passes `{ jobIds }` with `DeploymentStatus.Matched` so callers can query assignments after match.
-
-## 1.2.1
+- **Benchmark deployment filters** — optional minimum processor metrics aligned with the marketplace `deploy` extrinsic and matcher `matches/check`:
+  - `AcurastProjectConfig.benchmarkFilters`: `minMemoryBytes`, `minCpuSingleCoreScore`, `minStorageBytes`, `minStorageIoScore`, and optional `poolIds` overrides for compute-pallet metric pool IDs.
+  - `@acurast/sdk/chain`: `parseByteSize`, `buildBenchmarkMetricTriples`, `benchmarkTriplesToMatcherJson`, `hasBenchmarkFilters`, `buildMinMetricsForDeploy`, `DEFAULT_BENCHMARK_POOL_IDS`, `jobIdFromChainJson`, `listAssignedProcessorAddressesForJob` (reads `acurastMarketplace.assignedProcessors` map entries; processor SS58 from key only).
+  - `registerJob` accepts optional `{ projectConfig }` so `deployProject` can submit encoded `min_metrics` with the job.
+  - `@acurast/sdk/matcher`: `jobToMatchCheckParams` sends `min_metrics` when filters are set; exported `jsonRpcCall`.
 
 ### Fixed
 
 - Matcher `min_metrics` JSON: send `(pool_id, value)` pairs for `matches/check`, matching the matcher’s expected array shape (the chain `deploy` extrinsic still uses `(pool_id, numerator, denominator)` triples).
 
-## 1.2.0
+### Changed
 
-### Added
-
-- **Benchmark deployment filters** — optional minimum processor metrics aligned with the marketplace `deploy` extrinsic and matcher API:
-  - `AcurastProjectConfig.benchmarkFilters`: `minMemoryBytes`, `minCpuSingleCoreScore`, `minStorageBytes`, `minStorageIoScore`, and optional `poolIds` overrides for compute-pallet metric pool IDs.
-  - `@acurast/sdk/chain`: `parseByteSize`, `buildBenchmarkMetricTriples`, `benchmarkTriplesToMatcherJson`, `hasBenchmarkFilters`, `buildMinMetricsForDeploy`, `DEFAULT_BENCHMARK_POOL_IDS`.
-  - `registerJob` accepts optional `{ projectConfig }` so `deployProject` can submit encoded `min_metrics` with the job.
-  - `@acurast/sdk/matcher`: `jobToMatchCheckParams` sends `min_metrics` when filters are set; new `fetchMatchingProcessorsPreview` (`matches` / `list_processors`) for UI previews; exported `jsonRpcCall`.
+- `registerJob` passes `{ jobIds }` with `DeploymentStatus.Matched` so callers can query on-chain assignments after match.
 
 ## 1.1.0
 
