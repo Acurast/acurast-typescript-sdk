@@ -4,15 +4,22 @@ import type { KeyringPair } from '@polkadot/keyring/types'
 import {
   AssignmentStrategyVariant,
   DeploymentError,
+  type AcurastProjectConfig,
   type JobRegistration,
 } from '../types/project.js'
 import { DeploymentStatus } from '../types/deployment-status.js'
+import { buildMinMetricsForDeploy } from './benchmark-filters.js'
+
+export interface RegisterJobOptions {
+  projectConfig?: AcurastProjectConfig
+}
 
 export const registerJob = (
   api: ApiPromise,
   injector: KeyringPair,
   job: JobRegistration,
   statusCallback: (status: DeploymentStatus, data?: JobRegistration | any) => void,
+  registerOptions?: RegisterJobOptions,
 ): Promise<string> => {
   const script = `0x${Buffer.from(new TextEncoder().encode(job.script)).toString('hex')}`
   return new Promise(async (resolve, reject) => {
@@ -91,7 +98,9 @@ export const registerJob = (
           api.createType('u128', job.reuseKeysFrom[2]),
         ])
       : api.createType('Option<(AcurastCommonMultiOrigin, u128)>', undefined)
-    const minMetrics = api.createType('Option<Vec<(u8, u128, u128)>>', [])
+    const minMetrics = registerOptions?.projectConfig
+      ? buildMinMetricsForDeploy(api, registerOptions.projectConfig)
+      : api.createType('Option<Vec<(u8, u128, u128)>>', [])
 
     try {
       const unsub = await api.tx['acurastMarketplace']
@@ -122,7 +131,9 @@ export const registerJob = (
                     if (value.isSome) {
                       const statusValue = value.unwrap() as any
                       if (statusValue.isMatched) {
-                        statusCallback(DeploymentStatus.Matched)
+                        statusCallback(DeploymentStatus.Matched, {
+                          jobIds: jobIds.map((id) => id.toJSON()),
+                        })
                         return { id: jobIds[index], status: 'Matched' }
                       } else if (statusValue.isAssigned) {
                         statusCallback(DeploymentStatus.Acknowledged, {

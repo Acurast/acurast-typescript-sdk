@@ -24,9 +24,23 @@ export {
   isStartAtTimestamp,
 } from './config-to-job.js'
 export { registerJob } from './register-job.js'
+export type { RegisterJobOptions } from './register-job.js'
+export {
+  parseByteSize,
+  buildBenchmarkMetricTriples,
+  benchmarkTriplesToMatcherJson,
+  hasBenchmarkFilters,
+  buildMinMetricsForDeploy,
+} from './benchmark-filters.js'
+export type { MetricTriple } from './benchmark-filters.js'
+export { DEFAULT_BENCHMARK_POOL_IDS } from './benchmark-pool-ids.js'
 export { editScript } from './edit-script.js'
 export { transferEditor } from './transfer-editor.js'
 export { jobAssignments, getAcknowledgedProcessors } from './assignments.js'
+export {
+  jobIdFromChainJson,
+  listAssignedProcessorAddressesForJob,
+} from './assigned-processors.js'
 export { AcurastService, ACURAST_DECIMALS } from './acurast-service.js'
 export type { UnsubEvent, EventSub } from './acurast-service.js'
 export { JobEnvironmentService } from './env-encryption.js'

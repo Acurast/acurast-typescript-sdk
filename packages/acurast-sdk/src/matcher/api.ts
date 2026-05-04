@@ -1,5 +1,10 @@
 import axios from 'axios'
 import {
+  buildBenchmarkMetricTriples,
+  benchmarkTriplesToMatcherJson,
+  hasBenchmarkFilters,
+} from '../chain/benchmark-filters.js'
+import {
   RequiredModules,
   type AcurastProjectConfig,
   type JobRegistration,
@@ -7,7 +12,9 @@ import {
 
 const TIMEOUT_MS = 10_000
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
+export type ApiResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; jsonRpcCode?: number }
 
 export interface MatchCheckResult {
   matchable: boolean
@@ -34,7 +41,7 @@ export interface ProcessorCountResult {
 
 let rpcId = 0
 
-async function jsonRpcCall<T>(
+export async function jsonRpcCall<T>(
   url: string,
   method: string,
   params: Record<string, unknown>,
@@ -55,9 +62,12 @@ async function jsonRpcCall<T>(
     )
 
     if (response.data.error) {
+      const err = response.data.error as { message?: string; code?: number }
+      const code = typeof err.code === 'number' ? err.code : undefined
       return {
         ok: false,
-        error: response.data.error.message ?? JSON.stringify(response.data.error),
+        error: err.message ?? JSON.stringify(response.data.error),
+        ...(code !== undefined ? { jsonRpcCode: code } : {}),
       }
     }
 
@@ -82,6 +92,11 @@ export function jobToMatchCheckParams(
       build_number: v.buildNumber,
     })) ?? null
 
+  const minMetrics =
+    hasBenchmarkFilters(config) && config.benchmarkFilters
+      ? benchmarkTriplesToMatcherJson(buildBenchmarkMetricTriples(config.benchmarkFilters))
+      : null
+
   return {
     kind: config.assignmentStrategy.type,
     account_id: accountId,
@@ -94,7 +109,7 @@ export function jobToMatchCheckParams(
     reward: String(job.extra.requirements.reward),
     min_reputation: config.minProcessorReputation || null,
     min_processor_version: minProcessorVersion,
-    min_metrics: null,
+    min_metrics: minMetrics,
     requires_encryption: config.requiredModules?.includes(RequiredModules.DataEncryption) ?? false,
     requires_llm: config.requiredModules?.includes(RequiredModules.LLM) ?? false,
     only_verified: config.onlyAttestedDevices,
