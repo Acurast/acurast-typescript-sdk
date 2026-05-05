@@ -43,7 +43,9 @@ export function parseByteSize(input: string): bigint {
   return BigInt(bytes)
 }
 
-function resolvedPoolIds(filters: NonNullable<AcurastProjectConfig['benchmarkFilters']>): BenchmarkPoolIds {
+function resolvedPoolIds(
+  filters: NonNullable<AcurastProjectConfig['benchmarkFilters']>,
+): BenchmarkPoolIds {
   return {
     ...DEFAULT_BENCHMARK_POOL_IDS,
     ...filters.poolIds,
@@ -92,9 +94,7 @@ export function buildBenchmarkMetricTriples(
  * The matcher expects `(pool_id, min_value)` pairs (length-2 arrays), not the
  * on-chain `(pool_id, numerator, denominator)` triple used by `deploy`.
  */
-export function benchmarkTriplesToMatcherJson(
-  triples: MetricTriple[],
-): [number, string][] {
+export function benchmarkTriplesToMatcherJson(triples: MetricTriple[]): [number, string][] {
   return triples.map(([poolId, num, den]) => {
     if (den !== 1n) {
       throw new Error(

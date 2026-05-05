@@ -1,8 +1,5 @@
 import { convertConfigToJob } from '../src/chain/config-to-job.js'
-import {
-  buildBenchmarkMetricTriples,
-  parseByteSize,
-} from '../src/chain/benchmark-filters.js'
+import { buildBenchmarkMetricTriples, parseByteSize } from '../src/chain/benchmark-filters.js'
 import { jobToMatchCheckParams } from '../src/matcher/api.js'
 import type { AcurastProjectConfig } from '../src/types/project.js'
 import { AssignmentStrategyVariant } from '../src/types/project.js'
