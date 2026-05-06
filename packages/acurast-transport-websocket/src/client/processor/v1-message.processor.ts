@@ -1,6 +1,13 @@
 import { Crypto } from '../../crypto'
 import { type Message } from '../../message/messages'
-import { type AcceptedMessage, type ChallengeMessage, type PayloadMessage, createInitMessage, createPayloadMessage, createResponseMessage } from '../../message/v1-messages'
+import {
+  type AcceptedMessage,
+  type ChallengeMessage,
+  type PayloadMessage,
+  createInitMessage,
+  createPayloadMessage,
+  createResponseMessage,
+} from '../../message/v1-messages'
 
 import { type KeyPair } from '../types'
 
@@ -9,14 +16,17 @@ import { type ProcessorAction, type MessageProcessor } from './message-processor
 export class V1MessageProcessor implements MessageProcessor {
   public constructor(
     private readonly sender: Uint8Array,
-    private readonly crypto: Crypto = new Crypto()
+    private readonly crypto: Crypto = new Crypto(),
   ) {}
 
   public async init(): Promise<ProcessorAction | undefined> {
     return { type: 'send', message: createInitMessage(this.sender) }
   }
 
-  public async processMessage(message: Message, keyPair: KeyPair): Promise<ProcessorAction | undefined> {
+  public async processMessage(
+    message: Message,
+    keyPair: KeyPair,
+  ): Promise<ProcessorAction | undefined> {
     if (message.version !== 1) {
       return undefined
     }
@@ -37,12 +47,24 @@ export class V1MessageProcessor implements MessageProcessor {
     return createPayloadMessage(this.sender, recipient, payload)
   }
 
-  private async onChallenge(message: ChallengeMessage, keyPair: KeyPair): Promise<ProcessorAction | undefined> {
+  private async onChallenge(
+    message: ChallengeMessage,
+    keyPair: KeyPair,
+  ): Promise<ProcessorAction | undefined> {
     const nonce = new Uint8Array(16) // TODO: pow
     const payload = Buffer.concat([message.challenge, keyPair.publicKey, nonce])
     const signature = this.crypto.signP256(this.crypto.sha256(payload), keyPair.secretKey)
 
-    return { type: 'send', message: createResponseMessage(this.sender, message.challenge, keyPair.publicKey, nonce, signature) }
+    return {
+      type: 'send',
+      message: createResponseMessage(
+        this.sender,
+        message.challenge,
+        keyPair.publicKey,
+        nonce,
+        signature,
+      ),
+    }
   }
 
   private onAccepted(_message: AcceptedMessage): ProcessorAction | undefined {
@@ -55,8 +77,8 @@ export class V1MessageProcessor implements MessageProcessor {
       message: {
         sender: message.sender,
         recipient: message.recipient,
-        payload: message.payload
-      }
+        payload: message.payload,
+      },
     }
   }
 }

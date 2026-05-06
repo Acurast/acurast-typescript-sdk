@@ -8,7 +8,7 @@ import {
   type MessageProcessor,
   type NotifyProcessorAction,
   type SendProcessorAction,
-  type ConnectedProcessorAction
+  type ConnectedProcessorAction,
 } from './processor/message-processor'
 import { V1MessageProcessor } from './processor/v1-message.processor'
 import { Deferred } from '../utils/deferred'
@@ -30,7 +30,7 @@ export abstract class WebSocketTransportClient {
     private readonly session: WebSocketSession,
     private readonly crypto: Crypto = new Crypto(),
     private readonly maxPayloadLogLength: number = 100,
-    private readonly enableLogging: boolean = false
+    private readonly enableLogging: boolean = false,
   ) {}
 
   private async tryConnectingToUrls(): Promise<void> {
@@ -77,13 +77,13 @@ export abstract class WebSocketTransportClient {
 
     const normalizedKeyPair: KeyPair = {
       secretKey: keyPair.secretKey,
-      publicKey: this.crypto.compressP256PublicKey(keyPair.publicKey)
+      publicKey: this.crypto.compressP256PublicKey(keyPair.publicKey),
     }
 
     const sender = this.crypto.senderId(normalizedKeyPair.publicKey)
 
     this.messageProcessors = {
-      1: new V1MessageProcessor(sender, this.crypto)
+      1: new V1MessageProcessor(sender, this.crypto),
     }
 
     this.session.onMessage(async (message: Message) => {
@@ -93,8 +93,8 @@ export abstract class WebSocketTransportClient {
           ? message
           : {
               ...message,
-              payload: (message as PayloadMessage).payload.slice(0, this.maxPayloadLogLength)
-            }
+              payload: (message as PayloadMessage).payload.slice(0, this.maxPayloadLogLength),
+            },
       )
       const processor: MessageProcessor | undefined = this.messageProcessors[message.version]
       if (processor === undefined) {
@@ -103,7 +103,7 @@ export abstract class WebSocketTransportClient {
 
       const action: ProcessorAction | undefined = await processor.processMessage(
         message,
-        normalizedKeyPair
+        normalizedKeyPair,
       )
       await this.onAction(action)
     })
@@ -145,7 +145,7 @@ export abstract class WebSocketTransportClient {
       'Sent',
       this.maxPayloadLogLength > 0 ? payload.slice(0, this.maxPayloadLogLength) : payload,
       'to',
-      publicKeyOrSenderId
+      publicKeyOrSenderId,
     )
   }
 
@@ -193,6 +193,6 @@ export abstract class WebSocketTransportClient {
   private log(event: string, ...data: any[]): void {
     if (this.enableLogging) {
       log(`[ACURAST-TRANSPORT-WEBSOCKET:${this.lastSelectedURL}] ${event}`, ...data)
-    } 
+    }
   }
 }

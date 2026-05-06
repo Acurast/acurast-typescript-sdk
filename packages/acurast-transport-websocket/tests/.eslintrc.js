@@ -1,20 +1,18 @@
 module.exports = {
   env: {
-    mocha: true
+    mocha: true,
   },
-  plugins: [
-    'mocha'
-  ],
+  plugins: ['mocha'],
   extends: ['plugin:mocha/recommended'],
   overrides: [
     {
       env: {
-        mocha: true
+        mocha: true,
       },
       files: ['*.js', '*.ts'],
       parserOptions: {
-        project: './packages/acurast-transport-websocket/tests/tsconfig.json'
-      }
-    }
-  ]
+        project: './packages/acurast-transport-websocket/tests/tsconfig.json',
+      },
+    },
+  ],
 }
