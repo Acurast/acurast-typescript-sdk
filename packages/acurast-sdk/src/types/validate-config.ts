@@ -128,6 +128,22 @@ export const acurastProjectConfigSchema = z.object({
   runtime: z.nativeEnum(DeploymentRuntime).optional(),
   mutability: z.nativeEnum(ScriptMutability).optional(),
   reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
+  benchmarkFilters: z
+    .object({
+      minMemoryBytes: z.number().min(0).optional(),
+      minCpuSingleCoreScore: z.number().min(0).optional(),
+      minStorageBytes: z.number().min(0).optional(),
+      minStorageIoScore: z.number().min(0).optional(),
+      poolIds: z
+        .object({
+          cpuSingleCore: z.number().int().min(0).max(255).optional(),
+          ramTotalBytes: z.number().int().min(0).max(255).optional(),
+          storageTotalBytes: z.number().int().min(0).max(255).optional(),
+          storageIo: z.number().int().min(0).max(255).optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 })
 
 const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefine(

@@ -195,7 +195,9 @@ export const deployProject = async (
       options.statusCallback(status, data)
     }
 
-    const result = await registerJob(api, options.wallet, job, statusCallbackWrapper)
+    const result = await registerJob(api, options.wallet, job, statusCallbackWrapper, {
+      projectConfig: config,
+    })
 
     options.statusCallback(DeploymentStatus.Submit, { txHash: result })
   }

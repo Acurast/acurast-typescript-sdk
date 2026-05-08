@@ -4,6 +4,8 @@ export type {
   AcurastDeployment,
   AcurastCliConfig,
   JobRegistration,
+  BenchmarkFilters,
+  BenchmarkPoolIds,
 } from './project.js'
 export {
   AssignmentStrategyVariant,

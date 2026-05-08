@@ -1,5 +1,30 @@
 import type { EnvVar, Job, JobEnvironmentsEncrypted, JobId } from './env.js'
 
+/** Metric pool IDs on the compute pallet (u8). Used for `deploy` min-metrics. */
+export interface BenchmarkPoolIds {
+  cpuSingleCore: number
+  ramTotalBytes: number
+  storageTotalBytes: number
+  storageIo: number
+}
+
+/**
+ * Optional minimum processor benchmark criteria. Encoded on-chain as
+ * `Vec<(pool_id, numerator, denominator)>` rational FixedU128 thresholds.
+ */
+export interface BenchmarkFilters {
+  /** Minimum total RAM (bytes). */
+  minMemoryBytes?: number
+  /** Minimum CPU single-core benchmark score. */
+  minCpuSingleCoreScore?: number
+  /** Minimum total storage capacity (bytes). */
+  minStorageBytes?: number
+  /** Minimum storage I/O benchmark score. */
+  minStorageIoScore?: number
+  /** Override default metric pool IDs when your network uses non-standard IDs. */
+  poolIds?: Partial<BenchmarkPoolIds>
+}
+
 export interface AcurastProjectConfig {
   // The name of the project.
   projectName: string
@@ -81,6 +106,7 @@ export interface AcurastProjectConfig {
   mutability?: ScriptMutability
   reuseKeysFrom?: [MultiOrigin, string, number]
   enableDevtools?: boolean
+  benchmarkFilters?: BenchmarkFilters
 }
 
 export interface AcurastDeployment {
