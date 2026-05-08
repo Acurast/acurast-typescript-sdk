@@ -10,7 +10,7 @@ import {
   createInitMessage,
   createResponseMessage,
   createAcceptedMessage,
-  createPayloadMessage
+  createPayloadMessage,
 } from '../v1-messages'
 import { extractType, extractVersion } from '../header'
 
@@ -57,7 +57,7 @@ function parseInitMessage(sender: Uint8Array, recipient: Uint8Array): InitMessag
 function parseChallengeMessage(
   sender: Uint8Array,
   recipient: Uint8Array,
-  payload: Uint8Array
+  payload: Uint8Array,
 ): ChallengeMessage {
   const difficulty = payload.subarray(0, 16)
   const challenge = payload.subarray(16)
@@ -65,7 +65,11 @@ function parseChallengeMessage(
   return createChallengeMessage(recipient, challenge, difficulty, sender)
 }
 
-function parseResponseMessage(sender: Uint8Array, recipient: Uint8Array, payload: Uint8Array): ResponseMessage {
+function parseResponseMessage(
+  sender: Uint8Array,
+  recipient: Uint8Array,
+  payload: Uint8Array,
+): ResponseMessage {
   const challenge = payload.subarray(0, 16)
   const publicKey = payload.subarray(16, 49)
   const nonce = payload.subarray(49, 65)
@@ -78,6 +82,10 @@ function parseAcceptedMessage(sender: Uint8Array, recipient: Uint8Array): Accept
   return createAcceptedMessage(recipient, sender)
 }
 
-function parsePayloadMessage(sender: Uint8Array, recipient: Uint8Array, payload: Uint8Array): PayloadMessage {
+function parsePayloadMessage(
+  sender: Uint8Array,
+  recipient: Uint8Array,
+  payload: Uint8Array,
+): PayloadMessage {
   return createPayloadMessage(sender, recipient, payload)
 }

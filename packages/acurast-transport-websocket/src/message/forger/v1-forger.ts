@@ -6,7 +6,7 @@ import {
   type PayloadMessage,
   type ResponseMessage,
   type V1Message,
-  V1MessageCode
+  V1MessageCode,
 } from '../v1-messages'
 
 export function forgeV1Message(message: V1Message): Buffer {
@@ -14,7 +14,7 @@ export function forgeV1Message(message: V1Message): Buffer {
     message.version,
     V1MessageCode[message.type],
     message.sender,
-    message.recipient
+    message.recipient,
   )
   const payload: Buffer = forgeV1MessagePayload(message)
 

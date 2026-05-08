@@ -4,7 +4,7 @@ export function createHeader(
   version: number,
   type: number,
   sender: Uint8Array,
-  recipient: Uint8Array
+  recipient: Uint8Array,
 ): Buffer {
   const versionMask: number = version << 4
   const versionedType: Buffer = Buffer.alloc(1)

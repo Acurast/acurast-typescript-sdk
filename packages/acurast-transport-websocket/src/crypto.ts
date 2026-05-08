@@ -26,7 +26,7 @@ export class Crypto {
 
     return Buffer.concat([
       signature.r.toArrayLike(Buffer, 'be', 32),
-      signature.s.toArrayLike(Buffer, 'be', 32)
+      signature.s.toArrayLike(Buffer, 'be', 32),
     ])
   }
 
