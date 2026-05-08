@@ -22,25 +22,31 @@ const BYTE_UNIT: Record<string, bigint> = {
 /**
  * Parse human-readable byte sizes (`4GB`, `64gib`, `512 MB`) into an integer byte count.
  * Accepts optional space between number and unit; unit is case-insensitive.
+ * Arithmetic is done in BigInt to avoid float precision loss at TiB scale.
  */
 export function parseByteSize(input: string): bigint {
   const s = input.trim().replace(/\s+/g, '')
-  const m = /^(\d+(?:\.\d+)?)\s*([a-z]*)$/i.exec(s)
+  const m = /^(\d+)(?:\.(\d+))?\s*([a-z]*)$/i.exec(s)
   if (!m) {
     throw new Error(`Invalid byte size: "${input}"`)
   }
-  const val = Number.parseFloat(m[1])
-  if (!Number.isFinite(val) || val < 0) {
-    throw new Error(`Invalid number in byte size: "${input}"`)
-  }
-  const unitRaw = m[2]?.toLowerCase() ?? ''
+  const wholePart = m[1]
+  const fracPart = m[2] ?? ''
+  const unitRaw = m[3]?.toLowerCase() ?? ''
   const unit = unitRaw === '' ? 'b' : unitRaw
   const mult = BYTE_UNIT[unit]
   if (mult === undefined) {
-    throw new Error(`Unknown byte unit "${m[2]}" in "${input}"`)
+    throw new Error(`Unknown byte unit "${m[3]}" in "${input}"`)
   }
-  const bytes = Math.round(val * Number(mult))
-  return BigInt(bytes)
+  const whole = BigInt(wholePart)
+  if (fracPart === '') {
+    return whole * mult
+  }
+  const fracDigits = BigInt(fracPart)
+  const scale = 10n ** BigInt(fracPart.length)
+  const numerator = whole * scale * mult + fracDigits * mult
+  const half = scale / 2n
+  return (numerator + half) / scale
 }
 
 function resolvedPoolIds(

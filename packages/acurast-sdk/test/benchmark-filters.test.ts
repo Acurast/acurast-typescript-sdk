@@ -24,6 +24,15 @@ describe('parseByteSize', () => {
     expect(parseByteSize('4GiB')).toBe(4n * 1024n ** 3n)
     expect(parseByteSize('512 mb')).toBe(512_000_000n)
   })
+
+  test('preserves precision for fractional TiB input', () => {
+    expect(parseByteSize('1.5TiB')).toBe((3n * 1024n ** 4n) / 2n)
+    expect(parseByteSize('0.1GiB')).toBe(1024n ** 3n / 10n)
+  })
+
+  test('throws on unknown unit', () => {
+    expect(() => parseByteSize('5xb')).toThrow()
+  })
 })
 
 describe('buildBenchmarkMetricTriples', () => {
