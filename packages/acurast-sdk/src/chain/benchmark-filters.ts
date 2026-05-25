@@ -1,6 +1,6 @@
 import type { ApiPromise } from '@polkadot/api'
 import type { AcurastProjectConfig, BenchmarkPoolIds } from '../types/project.js'
-import { DEFAULT_BENCHMARK_POOL_IDS } from './benchmark-pool-ids.js'
+import { type AcurastNetwork, getDefaultBenchmarkPoolIds } from './benchmark-pool-ids.js'
 
 export type { BenchmarkPoolIds }
 
@@ -50,10 +50,11 @@ export function parseByteSize(input: string): bigint {
 }
 
 function resolvedPoolIds(
+  network: AcurastNetwork,
   filters: NonNullable<AcurastProjectConfig['benchmarkFilters']>,
 ): BenchmarkPoolIds {
   return {
-    ...DEFAULT_BENCHMARK_POOL_IDS,
+    ...getDefaultBenchmarkPoolIds(network),
     ...filters.poolIds,
   }
 }
@@ -70,26 +71,23 @@ function toU128String(n: bigint): string {
  * Integer thresholds use denominator `1`.
  */
 export function buildBenchmarkMetricTriples(
+  network: AcurastNetwork,
   filters: NonNullable<AcurastProjectConfig['benchmarkFilters']>,
 ): MetricTriple[] {
-  const pools = resolvedPoolIds(filters)
+  const pools = resolvedPoolIds(network, filters)
   const triples: MetricTriple[] = []
 
-  if (filters.minMemoryBytes !== undefined) {
-    const b = BigInt(filters.minMemoryBytes)
-    triples.push([pools.ramTotalBytes, b, 1n])
+  if (filters.minRamTotalBytes !== undefined) {
+    triples.push([pools.ramTotal, BigInt(filters.minRamTotalBytes), 1n])
   }
   if (filters.minCpuSingleCoreScore !== undefined) {
-    const v = BigInt(Math.floor(filters.minCpuSingleCoreScore))
-    triples.push([pools.cpuSingleCore, v, 1n])
+    triples.push([pools.cpuSingleCore, BigInt(Math.floor(filters.minCpuSingleCoreScore)), 1n])
   }
-  if (filters.minStorageBytes !== undefined) {
-    const b = BigInt(filters.minStorageBytes)
-    triples.push([pools.storageTotalBytes, b, 1n])
+  if (filters.minCpuMultiCoreScore !== undefined) {
+    triples.push([pools.cpuMultiCore, BigInt(Math.floor(filters.minCpuMultiCoreScore)), 1n])
   }
-  if (filters.minStorageIoScore !== undefined) {
-    const v = BigInt(Math.floor(filters.minStorageIoScore))
-    triples.push([pools.storageIo, v, 1n])
+  if (filters.minStorageAvailBytes !== undefined) {
+    triples.push([pools.storageAvail, BigInt(filters.minStorageAvailBytes), 1n])
   }
 
   return triples
@@ -115,10 +113,10 @@ export function hasBenchmarkFilters(config: AcurastProjectConfig): boolean {
   const f = config.benchmarkFilters
   if (!f) return false
   return (
-    f.minMemoryBytes !== undefined ||
+    f.minRamTotalBytes !== undefined ||
     f.minCpuSingleCoreScore !== undefined ||
-    f.minStorageBytes !== undefined ||
-    f.minStorageIoScore !== undefined
+    f.minCpuMultiCoreScore !== undefined ||
+    f.minStorageAvailBytes !== undefined
   )
 }
 
@@ -133,7 +131,7 @@ export function buildMinMetricsForDeploy(
   if (!hasBenchmarkFilters(config) || !config.benchmarkFilters) {
     return api.createType('Option<Vec<(u8, u128, u128)>>', [])
   }
-  const triples = buildBenchmarkMetricTriples(config.benchmarkFilters)
+  const triples = buildBenchmarkMetricTriples(config.network, config.benchmarkFilters)
   if (triples.length === 0) {
     return api.createType('Option<Vec<(u8, u128, u128)>>', [])
   }

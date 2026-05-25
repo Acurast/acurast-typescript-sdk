@@ -130,16 +130,16 @@ export const acurastProjectConfigSchema = z.object({
   reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
   benchmarkFilters: z
     .object({
-      minMemoryBytes: z.number().min(0).optional(),
+      minRamTotalBytes: z.number().min(0).optional(),
       minCpuSingleCoreScore: z.number().min(0).optional(),
-      minStorageBytes: z.number().min(0).optional(),
-      minStorageIoScore: z.number().min(0).optional(),
+      minCpuMultiCoreScore: z.number().min(0).optional(),
+      minStorageAvailBytes: z.number().min(0).optional(),
       poolIds: z
         .object({
           cpuSingleCore: z.number().int().min(0).max(255).optional(),
-          ramTotalBytes: z.number().int().min(0).max(255).optional(),
-          storageTotalBytes: z.number().int().min(0).max(255).optional(),
-          storageIo: z.number().int().min(0).max(255).optional(),
+          cpuMultiCore: z.number().int().min(0).max(255).optional(),
+          ramTotal: z.number().int().min(0).max(255).optional(),
+          storageAvail: z.number().int().min(0).max(255).optional(),
         })
         .optional(),
     })
