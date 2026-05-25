@@ -158,6 +158,8 @@ export const deployProject = async (
               wallet: options.wallet,
               rpcEndpoint: options.rpcEndpoint,
               keyStore: options.keyStore,
+              abortIfPastStartMs: job.schedule.startTime - 60_000,
+              logger,
             },
           )
 
