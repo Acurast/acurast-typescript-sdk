@@ -36,23 +36,38 @@ describe('parseByteSize', () => {
 })
 
 describe('buildBenchmarkMetricTriples', () => {
-  test('combines filters with default pool IDs', () => {
-    const triples = buildBenchmarkMetricTriples({
-      minMemoryBytes: 4096,
+  test('canary: storage_avail is pool 5', () => {
+    const triples = buildBenchmarkMetricTriples('canary', {
+      minRamTotalBytes: 4096,
       minCpuSingleCoreScore: 1000,
-      minStorageBytes: 1024,
-      minStorageIoScore: 500,
+      minCpuMultiCoreScore: 2000,
+      minStorageAvailBytes: 1024,
     })
     expect(triples).toEqual([
-      [2, 4096n, 1n],
+      [3, 4096n, 1n], // ram_total
+      [1, 1000n, 1n], // cpu_single_core
+      [2, 2000n, 1n], // cpu_multi_core
+      [5, 1024n, 1n], // storage_avail (canary)
+    ])
+  })
+
+  test('mainnet: storage_avail is pool 4', () => {
+    const triples = buildBenchmarkMetricTriples('mainnet', {
+      minRamTotalBytes: 4096,
+      minCpuSingleCoreScore: 1000,
+      minCpuMultiCoreScore: 2000,
+      minStorageAvailBytes: 1024,
+    })
+    expect(triples).toEqual([
+      [3, 4096n, 1n],
       [1, 1000n, 1n],
-      [3, 1024n, 1n],
-      [4, 500n, 1n],
+      [2, 2000n, 1n],
+      [4, 1024n, 1n],
     ])
   })
 
   test('respects poolIds overrides', () => {
-    const triples = buildBenchmarkMetricTriples({
+    const triples = buildBenchmarkMetricTriples('mainnet', {
       minCpuSingleCoreScore: 100,
       poolIds: { cpuSingleCore: 9 },
     })
@@ -61,20 +76,53 @@ describe('buildBenchmarkMetricTriples', () => {
 })
 
 describe('jobToMatchCheckParams min_metrics', () => {
-  test('includes encoded triples when benchmark filters set', () => {
+  test('canary: ram filter maps to pool 3', () => {
     const config = {
       ...baseConfig(),
       benchmarkFilters: {
-        minMemoryBytes: 4_000_000_000,
+        minRamTotalBytes: 4_000_000_000,
         minCpuSingleCoreScore: 1000,
       },
     }
     const job = convertConfigToJob(config)
     const params = jobToMatchCheckParams(config, job, '5FHneW46xGXgs5mUyeUd4oWuhVRfBgjXqUfeXUaTcpt')
     expect(params.min_metrics).toEqual([
-      [2, '4000000000'],
+      [3, '4000000000'],
       [1, '1000'],
     ])
+  })
+
+  test('mainnet ram filter maps to pool 3, not pool 2', () => {
+    const config: AcurastProjectConfig = {
+      ...baseConfig(),
+      network: 'mainnet',
+      benchmarkFilters: { minRamTotalBytes: 12_000_000_000 },
+    }
+    const job = convertConfigToJob(config)
+    const params = jobToMatchCheckParams(config, job, '5FHneW46xGXgs5mUyeUd4oWuhVRfBgjXqUfeXUaTcpt')
+    expect(params.min_metrics).toEqual([[3, '12000000000']])
+  })
+
+  test('mainnet storage filter maps to pool 4', () => {
+    const config: AcurastProjectConfig = {
+      ...baseConfig(),
+      network: 'mainnet',
+      benchmarkFilters: { minStorageAvailBytes: 1_000_000_000 },
+    }
+    const job = convertConfigToJob(config)
+    const params = jobToMatchCheckParams(config, job, '5FHneW46xGXgs5mUyeUd4oWuhVRfBgjXqUfeXUaTcpt')
+    expect(params.min_metrics).toEqual([[4, '1000000000']])
+  })
+
+  test('canary storage filter maps to pool 5', () => {
+    const config: AcurastProjectConfig = {
+      ...baseConfig(),
+      network: 'canary',
+      benchmarkFilters: { minStorageAvailBytes: 1_000_000_000 },
+    }
+    const job = convertConfigToJob(config)
+    const params = jobToMatchCheckParams(config, job, '5FHneW46xGXgs5mUyeUd4oWuhVRfBgjXqUfeXUaTcpt')
+    expect(params.min_metrics).toEqual([[5, '1000000000']])
   })
 
   test('null min_metrics when no filters', () => {

@@ -33,7 +33,8 @@ export {
   buildMinMetricsForDeploy,
 } from './benchmark-filters.js'
 export type { MetricTriple } from './benchmark-filters.js'
-export { DEFAULT_BENCHMARK_POOL_IDS } from './benchmark-pool-ids.js'
+export { getDefaultBenchmarkPoolIds } from './benchmark-pool-ids.js'
+export type { AcurastNetwork } from './benchmark-pool-ids.js'
 export { editScript } from './edit-script.js'
 export { transferEditor } from './transfer-editor.js'
 export { jobAssignments, getAcknowledgedProcessors } from './assignments.js'

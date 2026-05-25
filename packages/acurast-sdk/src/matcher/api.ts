@@ -94,7 +94,9 @@ export function jobToMatchCheckParams(
 
   const minMetrics =
     hasBenchmarkFilters(config) && config.benchmarkFilters
-      ? benchmarkTriplesToMatcherJson(buildBenchmarkMetricTriples(config.benchmarkFilters))
+      ? benchmarkTriplesToMatcherJson(
+          buildBenchmarkMetricTriples(config.network, config.benchmarkFilters),
+        )
       : null
 
   return {

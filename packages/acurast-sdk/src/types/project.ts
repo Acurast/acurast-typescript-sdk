@@ -1,27 +1,33 @@
 import type { EnvVar, Job, JobEnvironmentsEncrypted, JobId } from './env.js'
 
-/** Metric pool IDs on the compute pallet (u8). Used for `deploy` min-metrics. */
+/**
+ * Metric pool IDs on the `acurastCompute` pallet (u8). Field names mirror the
+ * on-chain pool slugs (`v1_<field>`). Only pools that exist on every supported
+ * network are exposed — `ram_speed` and `storage_speed` (canary/devnet only)
+ * are intentionally omitted.
+ */
 export interface BenchmarkPoolIds {
   cpuSingleCore: number
-  ramTotalBytes: number
-  storageTotalBytes: number
-  storageIo: number
+  cpuMultiCore: number
+  ramTotal: number
+  storageAvail: number
 }
 
 /**
  * Optional minimum processor benchmark criteria. Encoded on-chain as
  * `Vec<(pool_id, numerator, denominator)>` rational FixedU128 thresholds.
+ * Each filter maps to one chain pool (see {@link BenchmarkPoolIds}).
  */
 export interface BenchmarkFilters {
-  /** Minimum total RAM (bytes). */
-  minMemoryBytes?: number
+  /** Minimum total RAM (bytes). Routed to the `v1_ram_total` pool. */
+  minRamTotalBytes?: number
   /** Minimum CPU single-core benchmark score. */
   minCpuSingleCoreScore?: number
-  /** Minimum total storage capacity (bytes). */
-  minStorageBytes?: number
-  /** Minimum storage I/O benchmark score. */
-  minStorageIoScore?: number
-  /** Override default metric pool IDs when your network uses non-standard IDs. */
+  /** Minimum CPU multi-core benchmark score. */
+  minCpuMultiCoreScore?: number
+  /** Minimum available storage capacity (bytes). Routed to the `v1_storage_avail` pool. */
+  minStorageAvailBytes?: number
+  /** Override default metric pool IDs when governance reassigns them. */
   poolIds?: Partial<BenchmarkPoolIds>
 }
 
