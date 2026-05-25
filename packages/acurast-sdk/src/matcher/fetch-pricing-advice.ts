@@ -1,7 +1,18 @@
 import { BigNumber } from 'bignumber.js'
 import { convertConfigToJob } from '../chain/config-to-job.js'
-import { AssignmentStrategyVariant, type AcurastProjectConfig } from '../types/project.js'
-import { checkMatch, getAveragePrice, getPriceDistribution } from './api.js'
+import { hasBenchmarkFilters } from '../chain/benchmark-filters.js'
+import {
+  AssignmentStrategyVariant,
+  type AcurastProjectConfig,
+  type JobRegistration,
+} from '../types/project.js'
+import {
+  checkMatch,
+  checkMatchWithReward,
+  getAveragePrice,
+  getPriceDistribution,
+  type PriceDistributionBucket,
+} from './api.js'
 import { analyzePricing, type PricingAdvice } from './pricing-advisor.js'
 
 /**
@@ -23,7 +34,7 @@ export async function fetchPricingAdvice(
 ): Promise<PricingAdvice | undefined> {
   const hasInstantMatch =
     config.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
-    config.assignmentStrategy.instantMatch &&
+    config.assignmentStrategy.instantMatch != null &&
     config.assignmentStrategy.instantMatch.length > 0
 
   if (!matcherUrl || hasInstantMatch) {
@@ -38,15 +49,80 @@ export async function fetchPricingAdvice(
     getPriceDistribution(matcherUrl, job.schedule.duration, 10),
   ])
 
-  if (matchResult.ok && avgPriceResult.ok && distResult.ok) {
-    return analyzePricing(
-      matchResult.data,
-      distResult.data.buckets,
-      avgPriceResult.data,
-      new BigNumber(config.maxCostPerExecution),
-      config.numberOfReplicas,
-    )
+  if (!matchResult.ok || !avgPriceResult.ok || !distResult.ok) {
+    return undefined
   }
 
-  return undefined
+  const advice = analyzePricing(
+    matchResult.data,
+    distResult.data.buckets,
+    avgPriceResult.data,
+    new BigNumber(config.maxCostPerExecution),
+    config.numberOfReplicas,
+  )
+
+  if (!hasBenchmarkFilters(config)) {
+    return advice
+  }
+
+  const benchmarkAwareSuggested = await computeBenchmarkAwareSuggestedPrice(
+    matcherUrl,
+    config,
+    job,
+    walletAddress,
+    distResult.data.buckets,
+    config.numberOfReplicas,
+  )
+
+  return {
+    ...advice,
+    suggestedPrice: benchmarkAwareSuggested,
+    status: resolveStatus(
+      advice.matchedProcessors,
+      config.numberOfReplicas,
+      advice.currentPrice,
+      benchmarkAwareSuggested,
+    ),
+  }
+}
+
+/**
+ * Lowest bucket boundary whose reward yields >= required processors when
+ * the matcher applies the project's benchmark filters. Returns `null` when
+ * no boundary qualifies.
+ */
+async function computeBenchmarkAwareSuggestedPrice(
+  matcherUrl: string,
+  config: AcurastProjectConfig,
+  job: JobRegistration,
+  accountId: string,
+  buckets: PriceDistributionBucket[],
+  requiredProcessors: number,
+): Promise<BigNumber | null> {
+  if (buckets.length === 0) return null
+
+  for (const bucket of buckets) {
+    const candidate = bucket.range_max
+    const res = await checkMatchWithReward(matcherUrl, config, job, accountId, candidate)
+    if (res.ok && res.data.matched_processors >= requiredProcessors) {
+      return new BigNumber(candidate)
+    }
+  }
+
+  return null
+}
+
+function resolveStatus(
+  matchedProcessors: number,
+  requiredProcessors: number,
+  currentPrice: BigNumber,
+  suggestedPrice: BigNumber | null,
+): PricingAdvice['status'] {
+  if (matchedProcessors < requiredProcessors) {
+    return 'insufficient'
+  }
+  if (suggestedPrice != null && currentPrice.gt(suggestedPrice.times(1.5))) {
+    return 'overpaying'
+  }
+  return 'sufficient'
 }
