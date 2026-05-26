@@ -32,6 +32,20 @@ export interface SetEnvVarsOptions {
   logger?: Logger
 }
 
+const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout>
+  const timeoutPromise: Promise<never> = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`))
+    }, ms)
+  })
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    clearTimeout(timer!)
+  }
+}
+
 export const setEnvVars = async (
   job: Job & { envVars?: EnvVar[] },
   options: SetEnvVarsOptions,
@@ -44,71 +58,84 @@ export const setEnvVars = async (
   const maxRetries = options.maxRetries ?? 20
   const retryDelayMs = options.retryDelayMs ?? 30_000
   const logger = options.logger ?? NOOP_LOGGER
+  const rpcTimeoutMs = 60_000
 
   const acurast = new AcurastService(options.rpcEndpoint)
 
-  let jobAssignmentInfos: JobAssignmentInfo[] = []
+  try {
+    let jobAssignmentInfos: JobAssignmentInfo[] = []
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    if (options.abortIfPastStartMs !== undefined && Date.now() >= options.abortIfPastStartMs) {
-      throw new Error(
-        `setEnvVars aborted: passed abortIfPastStartMs (${new Date(
-          options.abortIfPastStartMs,
-        ).toISOString()}) before processors published encryption keys.`,
-      )
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      if (options.abortIfPastStartMs !== undefined && Date.now() >= options.abortIfPastStartMs) {
+        throw new Error(
+          `setEnvVars aborted: passed abortIfPastStartMs (${new Date(
+            options.abortIfPastStartMs,
+          ).toISOString()}) before processors published encryption keys.`,
+        )
+      }
+
+      logger.debug(`setEnvVars: attempt ${attempt}/${maxRetries} fetching processor pubKeys`)
+
+      let hasPubKeys = false
+      try {
+        const assignedProcessors = await withTimeout(
+          acurast.assignedProcessors([
+            [{ acurast: job.id[0].acurast }, Number(toNumber(job.id[1]))],
+          ]),
+          rpcTimeoutMs,
+          'assignedProcessors query',
+        )
+
+        const keys: Array<[string, JobId]> = Array.from(assignedProcessors.entries()).flatMap(
+          ([_, [jobId, processors]]) =>
+            processors.map<[string, JobId]>((account) => [account, jobId]),
+        )
+
+        jobAssignmentInfos = await withTimeout(
+          acurast.jobAssignments(keys),
+          rpcTimeoutMs,
+          'jobAssignments query',
+        )
+
+        hasPubKeys =
+          jobAssignmentInfos.length > 0 &&
+          jobAssignmentInfos.some((info) => info.assignment.pubKeys.length > 0)
+      } catch (err) {
+        logger.warn(
+          `setEnvVars: attempt ${attempt}/${maxRetries} RPC error: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        )
+      }
+
+      if (hasPubKeys) {
+        logger.debug(`setEnvVars: pubKeys available after ${attempt} attempt(s)`)
+        break
+      }
+
+      if (attempt === maxRetries) {
+        throw new Error(
+          `setEnvVars aborted: gave up after ${maxRetries} attempts — no assigned processor has published encryption keys.`,
+        )
+      }
+
+      logger.debug(`setEnvVars: no pubKeys yet, retrying in ${retryDelayMs}ms`)
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
     }
 
-    logger.debug(`setEnvVars: attempt ${attempt}/${maxRetries} fetching processor pubKeys`)
+    const jobEnvironmentService = new JobEnvironmentService({
+      acurastService: acurast,
+      keyStore: options.keyStore,
+    })
+    const res = await jobEnvironmentService.setEnvironmentVariablesMulti(
+      options.wallet,
+      jobAssignmentInfos,
+      Number(toNumber(job.id[1] as any)),
+      envVars,
+    )
 
-    let hasPubKeys = false
-    try {
-      const assignedProcessors = await acurast.assignedProcessors([
-        [{ acurast: job.id[0].acurast }, Number(toNumber(job.id[1]))],
-      ])
-
-      const keys: Array<[string, JobId]> = Array.from(assignedProcessors.entries()).flatMap(
-        ([_, [jobId, processors]]) =>
-          processors.map<[string, JobId]>((account) => [account, jobId]),
-      )
-
-      jobAssignmentInfos = await acurast.jobAssignments(keys)
-
-      hasPubKeys =
-        jobAssignmentInfos.length > 0 &&
-        jobAssignmentInfos.some((info) => info.assignment.pubKeys.length > 0)
-    } catch (err) {
-      logger.warn(
-        `setEnvVars: attempt ${attempt}/${maxRetries} RPC error: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      )
-    }
-
-    if (hasPubKeys) {
-      logger.debug(`setEnvVars: pubKeys available after ${attempt} attempt(s)`)
-      break
-    }
-
-    if (attempt === maxRetries) {
-      throw new Error(
-        `setEnvVars aborted: gave up after ${maxRetries} attempts — no assigned processor has published encryption keys.`,
-      )
-    }
-
-    logger.debug(`setEnvVars: no pubKeys yet, retrying in ${retryDelayMs}ms`)
-    await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+    return { hash: res.hash }
+  } finally {
+    await acurast.disconnect()
   }
-
-  const jobEnvironmentService = new JobEnvironmentService({
-    acurastService: acurast,
-    keyStore: options.keyStore,
-  })
-  const res = await jobEnvironmentService.setEnvironmentVariablesMulti(
-    options.wallet,
-    jobAssignmentInfos,
-    Number(toNumber(job.id[1] as any)),
-    envVars,
-  )
-
-  return { hash: res.hash }
 }
