@@ -144,7 +144,22 @@ export const acurastProjectConfigSchema = z.object({
         .optional(),
     })
     .optional(),
-})
+}).refine(
+  (data) => {
+    if (
+      data.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
+      data.assignmentStrategy.instantMatch != null &&
+      data.assignmentStrategy.instantMatch.length > 0
+    ) {
+      return data.assignmentStrategy.instantMatch.length === data.numberOfReplicas
+    }
+    return true
+  },
+  {
+    message: 'The number of instantMatch entries must equal numberOfReplicas. Each slot requires exactly one matched processor.',
+    path: ['assignmentStrategy', 'instantMatch'],
+  },
+)
 
 const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefine(
   (data, context) => {
