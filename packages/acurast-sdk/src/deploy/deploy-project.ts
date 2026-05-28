@@ -169,16 +169,22 @@ export const deployProject = async (
           options.statusCallback(DeploymentStatus.EnvironmentVariablesSet, envs)
         }
 
+        const handleEnvError = (err: unknown): void => {
+          const error = err instanceof Error ? err : new Error(String(err))
+          logger.error(`Setting Environment Variables failed: ${error.message}`)
+          options.statusCallback(DeploymentStatus.EnvironmentVariablesSet, { error })
+        }
+
         if (data.acknowledged >= config.numberOfReplicas) {
           logger.debug(
             'Setting Environment Variables: Have all acknowledgements, so we can set the env vars now.',
           )
-          setEnv()
+          setEnv().catch(handleEnvError)
         } else if (timeToJobStart <= TWO_MINUTES) {
           logger.debug(
             'Setting Environment Variables: Start is scheduled within 2 minutes, so we do it now.',
           )
-          setEnv()
+          setEnv().catch(handleEnvError)
         } else if (!timeout) {
           logger.debug(
             `Setting Environment Variables: Start is in the future, timeout will trigger in ${
@@ -189,7 +195,7 @@ export const deployProject = async (
             logger.debug(
               'Setting Environment Variables: Was in the future, timeout was awaited, now it will be set.',
             )
-            setEnv()
+            setEnv().catch(handleEnvError)
           }, timeToJobStart - TWO_MINUTES)
         }
       }
