@@ -2,13 +2,13 @@ import { AcurastService } from './acurast-service.js'
 import { JobEnvironmentService } from './env-encryption.js'
 import type { EnvVar, Job, JobAssignmentInfo, JobId } from '../types/env.js'
 import { toNumber } from './job-to-number.js'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { AcurastSigner } from './signer.js'
 import type { KeyStore } from './key-store.js'
 import { NOOP_LOGGER, type Logger } from '../deploy/logger.js'
 
 export interface SetEnvVarsOptions {
   /** Wallet used to sign the `setEnvironments` extrinsic(s). */
-  wallet: KeyringPair
+  wallet: AcurastSigner
   /** WebSocket RPC endpoint for the Acurast chain. */
   rpcEndpoint: string
   /** Persistent ECDH keypair storage. Defaults to in-memory. */

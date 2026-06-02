@@ -1,6 +1,5 @@
 import '@polkadot/api-augment'
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
 import {
   AssignmentStrategyVariant,
   DeploymentError,
@@ -9,6 +8,7 @@ import {
 } from '../types/project.js'
 import { DeploymentStatus } from '../types/deployment-status.js'
 import { buildMinMetricsForDeploy } from './benchmark-filters.js'
+import { type AcurastSigner, resolveSigner } from './signer.js'
 
 export interface RegisterJobOptions {
   projectConfig?: AcurastProjectConfig
@@ -16,7 +16,7 @@ export interface RegisterJobOptions {
 
 export const registerJob = (
   api: ApiPromise,
-  injector: KeyringPair,
+  injector: AcurastSigner,
   job: JobRegistration,
   statusCallback: (status: DeploymentStatus, data?: JobRegistration | any) => void,
   registerOptions?: RegisterJobOptions,
@@ -103,9 +103,10 @@ export const registerJob = (
       : api.createType('Option<Vec<(u8, u128, u128)>>', [])
 
     try {
+      const { account, options } = resolveSigner(injector)
       const unsub = await api.tx['acurastMarketplace']
         ['deploy'](jobRegistration, mutability, reuseKeysFrom, minMetrics)
-        .signAndSend(injector, async ({ status, events, txHash, dispatchError }) => {
+        .signAndSend(account, options, async ({ status, events, txHash, dispatchError }) => {
           const jobRegistrationEvents = events.filter((event) => {
             return (
               event.event.section === 'acurast' && event.event.method === 'JobRegistrationStoredV2'

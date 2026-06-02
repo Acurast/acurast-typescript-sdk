@@ -3,7 +3,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic, UnsubscribePromise, VoidFn } from '@polkadot/api/types'
 import type { DispatchError } from '@polkadot/types/interfaces'
 import type { Event } from '@polkadot/types/interfaces/system'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import { type AcurastSigner, resolveSigner } from './signer.js'
 import '@polkadot/api-augment'
 import type { Hash } from '@polkadot/types/interfaces/runtime'
 import type { Codec } from '@polkadot/types/types'
@@ -236,7 +236,7 @@ export class AcurastService {
   }
 
   public async setEnvironment(
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     jobId: number,
     jobEnvironment: JobEnvironmentEncrypted,
   ): Promise<Hash> {
@@ -248,7 +248,7 @@ export class AcurastService {
   }
 
   public async setEnvironments(
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     jobId: number,
     jobEnvironments: JobEnvironmentsEncrypted,
   ): Promise<Hash> {
@@ -263,7 +263,7 @@ export class AcurastService {
     ])
   }
 
-  public async deregisterJob(keyring: KeyringPair, localJobId: number): Promise<Hash> {
+  public async deregisterJob(keyring: AcurastSigner, localJobId: number): Promise<Hash> {
     const api = await this.connect()
     return this.signAndSend(api, keyring, [api.tx['acurast']['deregister'](localJobId)])
   }
@@ -277,7 +277,7 @@ export class AcurastService {
 
   private async signAndSend(
     api: ApiPromise,
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     calls: SubmittableExtrinsic<'promise', any>[],
   ): Promise<Hash> {
     let call: SubmittableExtrinsic<'promise', any>
@@ -287,9 +287,11 @@ export class AcurastService {
       call = calls[0]
     }
 
+    const { account, options } = resolveSigner(keyring)
+
     return new Promise(async (resolve, reject) => {
       const unsub = await call
-        .signAndSend(keyring, ({ status, events: _events, dispatchError }) => {
+        .signAndSend(account, options, ({ status, events: _events, dispatchError }) => {
           if (dispatchError) {
             const humanReadableError = getHumanReadableError(api, dispatchError)
             if (unsub) unsub()

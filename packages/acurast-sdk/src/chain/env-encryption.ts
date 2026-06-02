@@ -14,7 +14,7 @@ import type {
   JobEnvironmentsEncrypted,
 } from '../types/env.js'
 import { AcurastService } from './acurast-service.js'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { AcurastSigner } from './signer.js'
 import type { KeyStore } from './key-store.js'
 import { InMemoryKeyStore } from './key-store.js'
 
@@ -165,7 +165,7 @@ export class JobEnvironmentService {
   }
 
   public async setEnvironmentVariables(
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     assignment: JobAssignmentInfo,
     jobId: number,
     jobEnvironmentVariables: EnvVar[],
@@ -198,7 +198,7 @@ export class JobEnvironmentService {
   }
 
   private async setEnvironment(
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     jobId: number,
     jobEnvironment: JobEnvironmentEncrypted,
   ): Promise<{ hash: string }> {
@@ -207,7 +207,7 @@ export class JobEnvironmentService {
   }
 
   public async setEnvironmentVariablesMulti(
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     assignments: JobAssignmentInfo[],
     jobId: number,
     jobEnvironmentVariables: EnvVar[],
@@ -249,7 +249,7 @@ export class JobEnvironmentService {
   }
 
   private async setEnvironments(
-    keyring: KeyringPair,
+    keyring: AcurastSigner,
     jobId: number,
     jobEnvironments: JobEnvironmentsEncrypted,
   ): Promise<{ hash: string }> {

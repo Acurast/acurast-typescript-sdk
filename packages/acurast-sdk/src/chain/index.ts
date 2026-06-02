@@ -1,4 +1,11 @@
 export { walletFromMnemonic } from './wallet.js'
+export {
+  type AcurastSigner,
+  type InjectedAcurastSigner,
+  isInjectedSigner,
+  getSignerAddress,
+  resolveSigner,
+} from './signer.js'
 export { getBalance } from './balance.js'
 export { jobToNumber, toNumber } from './job-to-number.js'
 export {
