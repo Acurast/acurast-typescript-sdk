@@ -58,7 +58,9 @@ export const deployProjectBrowser = async (
         return cfg.fileUrl
       }
       if (!options.ipfs) {
-        throw new Error('deployProjectBrowser: `ipfs` options or a `resolveScript` override is required')
+        throw new Error(
+          'deployProjectBrowser: `ipfs` options or a `resolveScript` override is required',
+        )
       }
       const entrypoint = cfg.entrypoint ?? 'index.js'
       const files: BrowserBundleFiles = options.files ?? { [entrypoint]: '' }

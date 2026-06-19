@@ -14,10 +14,7 @@ export type { IpfsUploadOptions } from './upload.js'
  * Pinata-style request shape (field name, `pinataOptions`, filename) is kept
  * identical so the same pinning endpoint works for both.
  */
-export const uploadBlob = async (
-  blob: Blob,
-  options: IpfsUploadOptions,
-): Promise<string> => {
+export const uploadBlob = async (blob: Blob, options: IpfsUploadOptions): Promise<string> => {
   const form = new FormData()
   form.append('file', blob, 'script.js')
   form.append('pinataOptions', '{"cidVersion": 0}')

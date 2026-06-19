@@ -23,7 +23,10 @@ export interface DeployProjectOptions {
   /** When true, upload to IPFS but skip the on-chain `deploy` extrinsic. */
   onlyUpload?: boolean
   /** Per-stage progress callback. */
-  statusCallback: (status: import('../types/deployment-status.js').DeploymentStatus, data?: any) => void
+  statusCallback: (
+    status: import('../types/deployment-status.js').DeploymentStatus,
+    data?: any,
+  ) => void
   /** Persistent storage for ECDH keypairs used when encrypting env vars. */
   keyStore?: KeyStore
   /** Optional debug logger. */
