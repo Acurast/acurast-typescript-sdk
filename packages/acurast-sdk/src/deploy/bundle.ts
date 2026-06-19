@@ -1,29 +1,12 @@
 import AdmZip from 'adm-zip'
 import { existsSync, mkdirSync, statSync } from 'fs'
-import type { RestartPolicy } from '../types/project.js'
 import { NOOP_LOGGER, type Logger } from './logger.js'
+
+export { createManifest } from './manifest.js'
 
 export const checkIsFolder = async (path: string): Promise<boolean> => {
   const stats = statSync(path)
   return stats.isDirectory()
-}
-
-export const createManifest = (
-  name: string,
-  entrypoint: string,
-  restartPolicy: RestartPolicy,
-  image?: { url: string; sha256: string },
-): string => {
-  const manifest: Record<string, unknown> = {
-    name,
-    version: 1,
-    entrypoint,
-    restartPolicy,
-  }
-  if (image != null) {
-    manifest.image = image
-  }
-  return JSON.stringify(manifest)
 }
 
 export const zipFolder = async (

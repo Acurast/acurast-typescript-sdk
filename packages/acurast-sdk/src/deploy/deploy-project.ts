@@ -1,22 +1,19 @@
 import '@polkadot/api-augment'
-import { ApiPromise, WsProvider } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
 import { basename } from 'node:path'
 import { type AcurastProjectConfig, type JobRegistration, RestartPolicy } from '../types/project.js'
-import { DeploymentStatus } from '../types/deployment-status.js'
-import type { EnvVar, JobId } from '../types/env.js'
-import { registerJob } from '../chain/register-job.js'
-import { setEnvVars } from '../chain/set-env-vars.js'
+import type { EnvVar } from '../types/env.js'
 import type { KeyStore } from '../chain/key-store.js'
+import type { AcurastSigner } from '../chain/signer.js'
 import { uploadScript, type IpfsUploadOptions } from '../ipfs/upload.js'
 import { zipFolder, createManifest, checkIsFolder } from './bundle.js'
 import { NOOP_LOGGER, type Logger } from './logger.js'
+import { deployProjectCore } from './deploy-core.js'
 
 const BUNDLE_FOLDER = '.acurast/bundles'
 
 export interface DeployProjectOptions {
   /** Wallet that signs the deploy extrinsic. */
-  wallet: KeyringPair
+  wallet: AcurastSigner
   /** WebSocket RPC endpoint for the target Acurast chain. */
   rpcEndpoint: string
   /** IPFS pinning service configuration. */
@@ -26,7 +23,7 @@ export interface DeployProjectOptions {
   /** When true, upload to IPFS but skip the on-chain `deploy` extrinsic. */
   onlyUpload?: boolean
   /** Per-stage progress callback. */
-  statusCallback: (status: DeploymentStatus, data?: any) => void
+  statusCallback: (status: import('../types/deployment-status.js').DeploymentStatus, data?: any) => void
   /** Persistent storage for ECDH keypairs used when encrypting env vars. */
   keyStore?: KeyStore
   /** Optional debug logger. */
@@ -45,6 +42,9 @@ export interface DeployProjectOptions {
  * End-to-end deploy flow: bundle → IPFS → chain registration → env-var
  * encryption. Mirrors the behaviour of the legacy `createJob()` function in
  * the CLI, but takes all configuration explicitly.
+ *
+ * The orchestration is shared with the browser via {@link deployProjectCore};
+ * this Node entry supplies the fs/adm-zip bundling + IPFS upload step.
  */
 export const deployProject = async (
   config: AcurastProjectConfig,
@@ -54,46 +54,40 @@ export const deployProject = async (
   const logger = options.logger ?? NOOP_LOGGER
   const bundleFolder = options.bundleFolder ?? BUNDLE_FOLDER
 
-  const wsProvider = new WsProvider(options.rpcEndpoint)
-  const api = await ApiPromise.create({
-    provider: wsProvider,
-    noInitWarn: true,
-  })
-
-  let ipfsHash: string | undefined
-
-  if (config.fileUrl.startsWith('ipfs://')) {
-    ipfsHash = config.fileUrl
-    if (config.enableDevtools) {
-      logger.warn(
-        'enableDevtools is ignored when fileUrl is an IPFS hash — the devtools snippet can only be injected into local bundles.',
-      )
+  const resolveScript = async (cfg: AcurastProjectConfig): Promise<string> => {
+    if (cfg.fileUrl.startsWith('ipfs://')) {
+      if (cfg.enableDevtools) {
+        logger.warn(
+          'enableDevtools is ignored when fileUrl is an IPFS hash — the devtools snippet can only be injected into local bundles.',
+        )
+      }
+      logger.debug(`config.fileUrl is an IPFS hash, so we use this: ${cfg.fileUrl}`)
+      return cfg.fileUrl
     }
-    logger.debug(`config.fileUrl is an IPFS hash, so we use this: ${ipfsHash}`)
-  } else {
-    logger.debug(`config.fileUrl is not an IPFS hash, so we zip it: ${config.fileUrl}`)
 
-    const isFolder = await checkIsFolder(config.fileUrl)
+    logger.debug(`config.fileUrl is not an IPFS hash, so we zip it: ${cfg.fileUrl}`)
+
+    const isFolder = await checkIsFolder(cfg.fileUrl)
     if (isFolder) {
-      if (!config.entrypoint) {
+      if (!cfg.entrypoint) {
         logger.error('entrypoint is required for folders')
         throw new Error('entrypoint is required for folders')
       }
-      logger.debug(`config.fileUrl is a folder, so we use the entrypoint: ${config.entrypoint}`)
+      logger.debug(`config.fileUrl is a folder, so we use the entrypoint: ${cfg.entrypoint}`)
     }
 
-    const entrypoint = config.entrypoint ?? basename(config.fileUrl)
+    const entrypoint = cfg.entrypoint ?? basename(cfg.fileUrl)
 
     let { zipPath } = await zipFolder(
-      config.fileUrl,
+      cfg.fileUrl,
       bundleFolder,
       createManifest(
-        config.projectName,
+        cfg.projectName,
         entrypoint,
-        config.restartPolicy ?? RestartPolicy.OnFailure,
-        config.image,
+        cfg.restartPolicy ?? RestartPolicy.OnFailure,
+        cfg.image,
       ),
-      config.projectName,
+      cfg.projectName,
       logger,
     )
 
@@ -103,112 +97,17 @@ export const deployProject = async (
 
     logger.log(`zipPath ${zipPath}`)
 
-    ipfsHash = await uploadScript({ file: zipPath }, options.ipfs)
-
-    logger.debug(`ipfsHash: ${ipfsHash}`)
+    return uploadScript({ file: zipPath }, options.ipfs)
   }
 
-  options.statusCallback(DeploymentStatus.Uploaded, { ipfsHash })
-  config.fileUrl = ipfsHash
-  job.script = ipfsHash
-
-  options.statusCallback(DeploymentStatus.Prepared, { job })
-
-  let envHasBeenSet = false
-  const TWO_MINUTES = 2 * 60 * 1000
-  let timeout: NodeJS.Timeout | undefined
-
-  if (!options.onlyUpload) {
-    let jobId: JobId | undefined
-
-    const statusCallbackWrapper = (status: DeploymentStatus, data?: any) => {
-      if (status === DeploymentStatus.WaitingForMatch) {
-        jobId = data.jobIds[0]
-      }
-      if (status === DeploymentStatus.Acknowledged) {
-        if (envHasBeenSet) {
-          logger.log(
-            'Setting Environment Variables: Env has been set, but new acks have been received.',
-          )
-          return options.statusCallback(status, data)
-        }
-
-        const timeToJobStart = job.schedule.startTime - Date.now()
-
-        const setEnv = async () => {
-          envHasBeenSet = true
-          if (timeout) {
-            clearTimeout(timeout)
-          }
-          timeout = undefined
-          logger.debug('Setting Environment Variables: Preparing transaction')
-
-          if (!jobId) {
-            logger.error('Setting Environment Variables: JobId not set')
-            throw new Error('DeploymentId not set')
-          }
-
-          const envs = await setEnvVars(
-            {
-              id: jobId,
-              registration: job,
-              envVars: options.envVars,
-            },
-            {
-              wallet: options.wallet,
-              rpcEndpoint: options.rpcEndpoint,
-              keyStore: options.keyStore,
-              abortIfPastStartMs: job.schedule.startTime - 60_000,
-              logger,
-            },
-          )
-
-          logger.debug(
-            `Setting Environment Variables: Done ${envs.hash ? `(hash: ${envs.hash})` : ''}`,
-          )
-          options.statusCallback(DeploymentStatus.EnvironmentVariablesSet, envs)
-        }
-
-        const handleEnvError = (err: unknown): void => {
-          const error = err instanceof Error ? err : new Error(String(err))
-          logger.error(`Setting Environment Variables failed: ${error.message}`)
-          options.statusCallback(DeploymentStatus.EnvironmentVariablesSet, { error })
-        }
-
-        if (data.acknowledged >= config.numberOfReplicas) {
-          logger.debug(
-            'Setting Environment Variables: Have all acknowledgements, so we can set the env vars now.',
-          )
-          setEnv().catch(handleEnvError)
-        } else if (timeToJobStart <= TWO_MINUTES) {
-          logger.debug(
-            'Setting Environment Variables: Start is scheduled within 2 minutes, so we do it now.',
-          )
-          setEnv().catch(handleEnvError)
-        } else if (!timeout) {
-          logger.debug(
-            `Setting Environment Variables: Start is in the future, timeout will trigger in ${
-              timeToJobStart - TWO_MINUTES
-            }ms, 2 minutes before start time.`,
-          )
-          timeout = setTimeout(() => {
-            logger.debug(
-              'Setting Environment Variables: Was in the future, timeout was awaited, now it will be set.',
-            )
-            setEnv().catch(handleEnvError)
-          }, timeToJobStart - TWO_MINUTES)
-        }
-      }
-
-      options.statusCallback(status, data)
-    }
-
-    const result = await registerJob(api, options.wallet, job, statusCallbackWrapper, {
-      projectConfig: config,
-    })
-
-    options.statusCallback(DeploymentStatus.Submit, { txHash: result })
-  }
-
-  return job
+  return deployProjectCore(config, job, {
+    wallet: options.wallet,
+    rpcEndpoint: options.rpcEndpoint,
+    envVars: options.envVars,
+    onlyUpload: options.onlyUpload,
+    statusCallback: options.statusCallback,
+    keyStore: options.keyStore,
+    logger: options.logger,
+    resolveScript,
+  })
 }
