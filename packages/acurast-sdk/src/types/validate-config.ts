@@ -15,151 +15,154 @@ const isAcurastAddress = (val: string) => {
 }
 const isNotAcurastAddressMessage: string = 'Invalid Acurast address'
 
-export const acurastProjectConfigSchema = z.object({
-  projectName: z.string(),
-  fileUrl: z.string(),
-  entrypoint: z.string().optional(),
-  image: z
-    .object({
-      url: z.string(),
-      sha256: z.string(),
-    })
-    .optional(),
-  network: z.union([z.literal('mainnet'), z.literal('canary')]),
-  onlyAttestedDevices: z.boolean(),
-  startAt: z
-    .union([
-      z.object({ msFromNow: z.number().min(0) }),
-      z.object({
-        timestamp: z.union([
-          z
-            .number()
-            .refine(
-              (val) => {
-                const date = new Date(val)
-                return !isNaN(date.getTime())
-              },
-              { message: 'Invalid timestamp' },
-            )
-            .refine(
-              (val) => {
-                return val >= Date.now()
-              },
-              { message: 'Timestamp cannot be in the past' },
-            ),
-          z.string().datetime(),
-        ]),
-      }),
-    ])
-    .optional(),
-  assignmentStrategy: z.union([
-    z.object({
-      type: z.literal(AssignmentStrategyVariant.Single),
-      instantMatch: z
-        .array(
-          z.object({
-            processor: z.string().refine(isAcurastAddress, isNotAcurastAddressMessage),
-            maxAllowedStartDelayInMs: z.number().min(0),
-          }),
-        )
-        .optional(),
-    }),
-    z.object({
-      type: z.literal(AssignmentStrategyVariant.Competing),
-    }),
-  ]),
-  execution: z.union([
-    z
+export const acurastProjectConfigSchema = z
+  .object({
+    projectName: z.string(),
+    fileUrl: z.string(),
+    entrypoint: z.string().optional(),
+    image: z
       .object({
-        type: z.literal('onetime'),
-        maxExecutionTimeInMs: z.number().min(1),
+        url: z.string(),
+        sha256: z.string(),
       })
-      .strict(),
-    z
-      .object({
-        type: z.literal('interval'),
-        intervalInMs: z.number().min(1),
-        numberOfExecutions: z.number().min(1),
-        maxExecutionTimeInMs: z.number().min(1).optional(),
-      })
-      .strict()
-      .refine(
-        (data) => {
-          if (data.maxExecutionTimeInMs === undefined) return true
-          return data.maxExecutionTimeInMs < data.intervalInMs
-        },
-        {
-          message: 'maxExecutionTimeInMs must be less than intervalInMs',
-          path: ['maxExecutionTimeInMs'],
-        },
-      ),
-  ]),
-  maxAllowedStartDelayInMs: z.number().min(0),
-  usageLimit: z.object({
-    maxMemory: z.number().min(0),
-    maxNetworkRequests: z.number().min(0),
-    maxStorage: z.number().min(0),
-  }),
-  numberOfReplicas: z.number().min(1).max(64),
-  requiredModules: z.array(z.nativeEnum(RequiredModules)).optional(),
-  minProcessorReputation: z.number().min(0),
-  maxCostPerExecution: z.number().min(0),
-  includeEnvironmentVariables: z.array(z.string()).optional(),
-  processorWhitelist: z
-    .array(z.string().refine(isAcurastAddress, isNotAcurastAddressMessage))
-    .optional(),
-  minProcessorVersions: z
-    .union([
+      .optional(),
+    network: z.union([z.literal('mainnet'), z.literal('canary')]),
+    onlyAttestedDevices: z.boolean(),
+    startAt: z
+      .union([
+        z.object({ msFromNow: z.number().min(0) }),
+        z.object({
+          timestamp: z.union([
+            z
+              .number()
+              .refine(
+                (val) => {
+                  const date = new Date(val)
+                  return !isNaN(date.getTime())
+                },
+                { message: 'Invalid timestamp' },
+              )
+              .refine(
+                (val) => {
+                  return val >= Date.now()
+                },
+                { message: 'Timestamp cannot be in the past' },
+              ),
+            z.string().datetime(),
+          ]),
+        }),
+      ])
+      .optional(),
+    assignmentStrategy: z.union([
       z.object({
-        android: z.union([z.string(), z.number()]),
-        ios: z.union([z.string(), z.number()]).optional(),
+        type: z.literal(AssignmentStrategyVariant.Single),
+        instantMatch: z
+          .array(
+            z.object({
+              processor: z.string().refine(isAcurastAddress, isNotAcurastAddressMessage),
+              maxAllowedStartDelayInMs: z.number().min(0),
+            }),
+          )
+          .optional(),
       }),
       z.object({
-        android: z.union([z.string(), z.number()]).optional(),
-        ios: z.union([z.string(), z.number()]),
+        type: z.literal(AssignmentStrategyVariant.Competing),
       }),
-      z.object({
-        android: z.union([z.string(), z.number()]),
-        ios: z.union([z.string(), z.number()]),
-      }),
-    ])
-    .optional(),
-  restartPolicy: z.nativeEnum(RestartPolicy).optional(),
-  runtime: z.nativeEnum(DeploymentRuntime).optional(),
-  mutability: z.nativeEnum(ScriptMutability).optional(),
-  reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
-  benchmarkFilters: z
-    .object({
-      minRamTotalBytes: z.number().min(0).optional(),
-      minCpuSingleCoreScore: z.number().min(0).optional(),
-      minCpuMultiCoreScore: z.number().min(0).optional(),
-      minStorageAvailBytes: z.number().min(0).optional(),
-      poolIds: z
+    ]),
+    execution: z.union([
+      z
         .object({
-          cpuSingleCore: z.number().int().min(0).max(255).optional(),
-          cpuMultiCore: z.number().int().min(0).max(255).optional(),
-          ramTotal: z.number().int().min(0).max(255).optional(),
-          storageAvail: z.number().int().min(0).max(255).optional(),
+          type: z.literal('onetime'),
+          maxExecutionTimeInMs: z.number().min(1),
         })
-        .optional(),
-    })
-    .optional(),
-}).refine(
-  (data) => {
-    if (
-      data.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
-      data.assignmentStrategy.instantMatch != null &&
-      data.assignmentStrategy.instantMatch.length > 0
-    ) {
-      return data.assignmentStrategy.instantMatch.length === data.numberOfReplicas
-    }
-    return true
-  },
-  {
-    message: 'The number of instantMatch entries must equal numberOfReplicas. Each slot requires exactly one matched processor.',
-    path: ['assignmentStrategy', 'instantMatch'],
-  },
-)
+        .strict(),
+      z
+        .object({
+          type: z.literal('interval'),
+          intervalInMs: z.number().min(1),
+          numberOfExecutions: z.number().min(1),
+          maxExecutionTimeInMs: z.number().min(1).optional(),
+        })
+        .strict()
+        .refine(
+          (data) => {
+            if (data.maxExecutionTimeInMs === undefined) return true
+            return data.maxExecutionTimeInMs < data.intervalInMs
+          },
+          {
+            message: 'maxExecutionTimeInMs must be less than intervalInMs',
+            path: ['maxExecutionTimeInMs'],
+          },
+        ),
+    ]),
+    maxAllowedStartDelayInMs: z.number().min(0),
+    usageLimit: z.object({
+      maxMemory: z.number().min(0),
+      maxNetworkRequests: z.number().min(0),
+      maxStorage: z.number().min(0),
+    }),
+    numberOfReplicas: z.number().min(1).max(64),
+    requiredModules: z.array(z.nativeEnum(RequiredModules)).optional(),
+    minProcessorReputation: z.number().min(0),
+    maxCostPerExecution: z.number().min(0),
+    includeEnvironmentVariables: z.array(z.string()).optional(),
+    processorWhitelist: z
+      .array(z.string().refine(isAcurastAddress, isNotAcurastAddressMessage))
+      .optional(),
+    minProcessorVersions: z
+      .union([
+        z.object({
+          android: z.union([z.string(), z.number()]),
+          ios: z.union([z.string(), z.number()]).optional(),
+        }),
+        z.object({
+          android: z.union([z.string(), z.number()]).optional(),
+          ios: z.union([z.string(), z.number()]),
+        }),
+        z.object({
+          android: z.union([z.string(), z.number()]),
+          ios: z.union([z.string(), z.number()]),
+        }),
+      ])
+      .optional(),
+    restartPolicy: z.nativeEnum(RestartPolicy).optional(),
+    runtime: z.nativeEnum(DeploymentRuntime).optional(),
+    mutability: z.nativeEnum(ScriptMutability).optional(),
+    reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
+    benchmarkFilters: z
+      .object({
+        minRamTotalBytes: z.number().min(0).optional(),
+        minCpuSingleCoreScore: z.number().min(0).optional(),
+        minCpuMultiCoreScore: z.number().min(0).optional(),
+        minStorageAvailBytes: z.number().min(0).optional(),
+        poolIds: z
+          .object({
+            cpuSingleCore: z.number().int().min(0).max(255).optional(),
+            cpuMultiCore: z.number().int().min(0).max(255).optional(),
+            ramTotal: z.number().int().min(0).max(255).optional(),
+            storageAvail: z.number().int().min(0).max(255).optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.assignmentStrategy.type === AssignmentStrategyVariant.Single &&
+        data.assignmentStrategy.instantMatch != null &&
+        data.assignmentStrategy.instantMatch.length > 0
+      ) {
+        return data.assignmentStrategy.instantMatch.length === data.numberOfReplicas
+      }
+      return true
+    },
+    {
+      message:
+        'The number of instantMatch entries must equal numberOfReplicas. Each slot requires exactly one matched processor.',
+      path: ['assignmentStrategy', 'instantMatch'],
+    },
+  )
 
 const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefine(
   (data, context) => {

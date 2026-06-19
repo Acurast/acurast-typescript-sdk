@@ -2,8 +2,7 @@ import JSZip from 'jszip'
 import { zipProjectBrowser } from '../src/deploy/bundle.browser.js'
 import { RestartPolicy } from '../src/types/project.js'
 
-const toBytes = async (blob: Blob): Promise<Uint8Array> =>
-  new Uint8Array(await blob.arrayBuffer())
+const toBytes = async (blob: Blob): Promise<Uint8Array> => new Uint8Array(await blob.arrayBuffer())
 
 describe('zipProjectBrowser', () => {
   const files = { 'index.js': 'export default () => {}\n' }
@@ -42,8 +41,12 @@ describe('zipProjectBrowser', () => {
   })
 
   it('is deterministic: identical inputs produce byte-identical zips', async () => {
-    const a = await toBytes(await zipProjectBrowser(files, { projectName: 'p', entrypoint: 'index.js' }))
-    const b = await toBytes(await zipProjectBrowser(files, { projectName: 'p', entrypoint: 'index.js' }))
+    const a = await toBytes(
+      await zipProjectBrowser(files, { projectName: 'p', entrypoint: 'index.js' }),
+    )
+    const b = await toBytes(
+      await zipProjectBrowser(files, { projectName: 'p', entrypoint: 'index.js' }),
+    )
     expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true)
   })
 
