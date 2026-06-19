@@ -1,11 +1,45 @@
 # Changelog
 
-## 1.1.1
+## 1.3.0
+
+### Added
+
+- **Browser support & injectable signers** — run deployments from a browser (e.g. the CLI Playground) without Node-only dependencies.
+  - New `@acurast/sdk/browser` entry point. Re-exports `types`, `chain`, and `matcher`, plus browser-safe deploy primitives — no `fs`, `adm-zip`, `form-data`, or `node:path`.
+  - Injectable signer abstraction in `@acurast/sdk/chain`: `AcurastSigner` (a mnemonic-derived `KeyringPair` **or** an `InjectedAcurastSigner`), with `isInjectedSigner`, `getSignerAddress`, and `resolveSigner`. Lets a browser-extension or remote-signing bridge sign extrinsics; the mnemonic path is unchanged.
+  - Shared, environment-agnostic deploy orchestrator `deployProjectCore` (`DeployProjectCoreOptions`), used by both the Node and browser entry points.
+  - Browser deploy/bundle/upload helpers: `deployProjectBrowser`, `zipProjectBrowser` (JSZip-based), and `uploadBlob` (IPFS upload via `fetch`).
+  - New `browser` / `./browser` package `exports` and a `jszip` dependency.
+
+### Fixed
+
+- `setEnvVars` reliability: reworked the assigned-processor handling and encryption flow in `set-env-vars.ts` / `deploy-project.ts`.
+- Config validation: for the `Single` assignment strategy, the number of `instantMatch` entries must equal `numberOfReplicas` (each slot needs exactly one matched processor).
+
+## 1.2.2
+
+### Changed
+
+- **Corrected benchmark filter fields and pool IDs.** Renamed `AcurastProjectConfig.benchmarkFilters` keys to match the compute pallet, and made default pool IDs network-aware:
+  - `minMemoryBytes` → `minRamTotalBytes`, `minStorageBytes` → `minStorageAvailBytes`; added `minCpuMultiCoreScore`; removed `minStorageIoScore`. `minCpuSingleCoreScore` unchanged.
+  - `DEFAULT_BENCHMARK_POOL_IDS` replaced by `getDefaultBenchmarkPoolIds(network)` with an `AcurastNetwork` parameter; metric-triple builders now take the target network.
+
+## 1.2.1
+
+### Added
+
+- **Benchmark pricing** — `@acurast/sdk/matcher` `fetchPricingAdvice` now factors benchmark-filtered processor availability into its cost/fee recommendations.
+
+### Fixed
+
+- `setEnvVars`: fixed the per-processor submission loop so env vars are sent to all assigned processors.
+
+## 1.2.0
 
 ### Added
 
 - **Benchmark deployment filters** — optional minimum processor metrics aligned with the marketplace `deploy` extrinsic and matcher `matches/check`:
-  - `AcurastProjectConfig.benchmarkFilters`: `minMemoryBytes`, `minCpuSingleCoreScore`, `minStorageBytes`, `minStorageIoScore`, and optional `poolIds` overrides for compute-pallet metric pool IDs.
+  - `AcurastProjectConfig.benchmarkFilters`: `minMemoryBytes`, `minCpuSingleCoreScore`, `minStorageBytes`, `minStorageIoScore`, and optional `poolIds` overrides for compute-pallet metric pool IDs. _(Field names corrected in 1.2.2.)_
   - `@acurast/sdk/chain`: `parseByteSize`, `buildBenchmarkMetricTriples`, `benchmarkTriplesToMatcherJson`, `hasBenchmarkFilters`, `buildMinMetricsForDeploy`, `DEFAULT_BENCHMARK_POOL_IDS`, `jobIdFromChainJson`, `listAssignedProcessorAddressesForJob` (reads `acurastMarketplace.assignedProcessors` map entries; processor SS58 from key only).
   - `registerJob` accepts optional `{ projectConfig }` so `deployProject` can submit encoded `min_metrics` with the job.
   - `@acurast/sdk/matcher`: `jobToMatchCheckParams` sends `min_metrics` when filters are set; exported `jsonRpcCall`.
@@ -13,6 +47,7 @@
 ### Fixed
 
 - Matcher `min_metrics` JSON: send `(pool_id, value)` pairs for `matches/check`, matching the matcher’s expected array shape (the chain `deploy` extrinsic still uses `(pool_id, numerator, denominator)` triples).
+- Benchmark metric thresholds use `bigint` (u128) arithmetic to avoid precision loss on large byte values.
 
 ### Changed
 
