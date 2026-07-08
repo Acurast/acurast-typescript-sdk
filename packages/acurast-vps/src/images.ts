@@ -5,3 +5,9 @@ export const VPS_IMAGES = {
     sha256: '5ab35b90cd9a9f180656261ba400a135c4c01c2da4b74522118342f985c2d328',
   },
 } as const
+
+export const VPS_IMAGE_PRESETS = {
+  ubuntu: VPS_IMAGES.ubuntuAarch64,
+} as const
+
+export type VpsImageName = keyof typeof VPS_IMAGE_PRESETS

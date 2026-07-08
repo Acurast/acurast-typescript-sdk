@@ -6,8 +6,8 @@ import {
   type AcurastProjectConfig,
 } from '@acurast/sdk/types'
 import { generateTunnelKeypair, computeClientId } from './keypair.js'
-import { VPS_IMAGES } from './images.js'
-import type { VpsOptions, VpsDeploymentPlan } from './types.js'
+import { VPS_IMAGE_PRESETS } from './images.js'
+import type { VpsRequest, VpsDeploymentPlan } from './types.js'
 
 /**
  * IPFS CID of the pre-uploaded cargo tunnel app bundle (start.sh + tunnel.py + www/).
@@ -19,24 +19,27 @@ export const TUNNEL_SCRIPT_IPFS = ''
 const DEFAULT_REWARD = 48_686_320_000
 
 /**
- * Build a VPS deployment plan:
+ * Build a VPS deployment plan from a `vps: {}` request body:
  * 1. Generates a P-256 keypair and precomputes the tunnel clientId
  * 2. Constructs the Acurast JobRegistration for the Shell/tunnel runtime
- * 3. Returns the env vars to inject after the job is matched
+ * 3. Returns env vars to inject after the job is matched
  *
  * Usage:
- *   const plan = buildVpsJob({ sshAuthorizedKey: '...' })
+ *   const plan = buildVpsJob({ sshKey: '...', image: 'ubuntu' })
  *   const txHash = await registerJob(api, signer, plan.job, callback)
  *   // after WaitingForMatch, inject plan.envVars via setEnvVars
  *   return { domain: `https://${plan.clientId}.acu.run`, txHash }
  */
-export function buildVpsJob(options: VpsOptions): VpsDeploymentPlan {
+export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
   const scriptCid = options.scriptCid ?? TUNNEL_SCRIPT_IPFS
   if (!scriptCid) {
     throw new Error(
-      'No tunnel script IPFS CID configured. Pass scriptCid in VpsOptions or set TUNNEL_SCRIPT_IPFS.',
+      'No tunnel script IPFS CID configured. Pass scriptCid in the request or set VPS_TUNNEL_SCRIPT_CID in the environment.',
     )
   }
+
+  const imageName = options.image ?? 'ubuntu'
+  const image = VPS_IMAGE_PRESETS[imageName]
 
   const tunnelKey = generateTunnelKeypair()
   const clientId = computeClientId(tunnelKey.publicKeyCompressed)
@@ -46,7 +49,7 @@ export function buildVpsJob(options: VpsOptions): VpsDeploymentPlan {
     fileUrl: scriptCid,
     entrypoint: 'start.sh',
     runtime: DeploymentRuntime.Shell,
-    image: VPS_IMAGES.ubuntuAarch64,
+    image,
     network: options.network ?? 'mainnet',
     onlyAttestedDevices: true,
     startAt: { msFromNow: 120_000 },
@@ -73,7 +76,7 @@ export function buildVpsJob(options: VpsOptions): VpsDeploymentPlan {
 
   const envVars = [
     { key: 'TUNNEL_KEY', value: tunnelKey.privateKeyPkcs8.toString('base64') },
-    { key: 'SSH_AUTHORIZED_KEY', value: options.sshAuthorizedKey },
+    { key: 'SSH_AUTHORIZED_KEY', value: options.sshKey },
   ]
 
   return { job, tunnelKey, clientId, envVars }

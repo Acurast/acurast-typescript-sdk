@@ -1,4 +1,5 @@
 import type { JobRegistration } from '@acurast/sdk/types'
+import type { VpsImageName } from './images.js'
 
 export type { JobRegistration }
 
@@ -9,18 +10,21 @@ export interface VpsKeypair {
   publicKeyCompressed: Buffer
 }
 
-export interface VpsOptions {
-  /** User's SSH public key installed into dropbear's authorized_keys */
-  sshAuthorizedKey: string
-  /** Minimum total RAM in bytes (mapped to acurastCompute benchmark filter) */
+/** Parameters accepted in the `vps: {}` request body key */
+export interface VpsRequest {
+  /** SSH public key installed into dropbear's authorized_keys */
+  sshKey: string
+  /** Image preset (default: 'ubuntu') */
+  image?: VpsImageName
+  /** Minimum total RAM bytes (mapped to acurastCompute benchmark filter) */
   minMemory?: number
   /** Minimum CPU single-core benchmark score */
   minCpu?: number
-  /** Maximum cost per execution in ACU micro-units (default: 48_686_320_000) */
+  /** Reward per execution in ACU micro-units (default: 48_686_320_000) */
   reward?: number
   /** Target network (default: 'mainnet') */
   network?: 'mainnet' | 'canary'
-  /** Override the default tunnel script IPFS CID */
+  /** Override tunnel script IPFS CID (mainly for testing) */
   scriptCid?: string
 }
 
