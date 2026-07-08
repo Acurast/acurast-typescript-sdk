@@ -10,9 +10,14 @@ import { VPS_IMAGE_PRESETS } from './images.js'
 import type { VpsRequest, VpsDeploymentPlan } from './types.js'
 
 /**
- * IPFS CID of the pre-uploaded cargo tunnel app bundle (start.sh + tunnel.py + www/).
- * Based on https://github.com/Acurast/acurast-example-apps/tree/main/apps/app-tunnel/cargo
- * TODO: replace with the canonical published CID once uploaded.
+ * IPFS CID of the tunnel bundle shipped in `../tunnel/` (start.sh + tunnel.py +
+ * callback.sh + getifaddrs_override.c). The bundle expects the deploy agent to
+ * inject `TUNNEL_KEY` (P-256 PKCS#8 base64) and `SSH_AUTHORIZED_KEY`, and
+ * exposes dropbear on 2222 behind the secondary tunnel.
+ *
+ * Populated by the release flow: tar `tunnel/` → pin → paste the CID here →
+ * publish. The interface in this file and the script version are then locked
+ * together per `@acurast/vps` release.
  */
 export const TUNNEL_SCRIPT_IPFS = ''
 

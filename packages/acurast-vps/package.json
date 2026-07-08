@@ -12,7 +12,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "tunnel"
   ],
   "scripts": {
     "build": "rm -rf ./dist && tsc",
