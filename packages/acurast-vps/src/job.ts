@@ -69,7 +69,10 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     requiredModules: [RequiredModules.Shell],
     minProcessorReputation: 0,
     maxCostPerExecution: options.reward ?? DEFAULT_REWARD,
-    minProcessorVersions: { android: '1.26.0' },
+    // buildNumber 128 = Android 1.26.0 (first version with secondaryLocalAddr
+    // tunnel support). Passing the raw number avoids depending on the SDK's
+    // bundled version map, which lags the on-chain release cadence.
+    minProcessorVersions: { android: 128 },
     includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK'],
     benchmarkFilters: {
       minRamTotalBytes: options.minMemory,
