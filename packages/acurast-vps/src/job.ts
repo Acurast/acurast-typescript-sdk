@@ -19,7 +19,7 @@ import type { VpsRequest, VpsDeploymentPlan } from './types.js'
  * publish. The interface in this file and the script version are then locked
  * together per `@acurast/vps` release.
  */
-export const TUNNEL_SCRIPT_IPFS = ''
+export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmWzeuQM55UrHR9WWv7tEcpwYrM4NWmw7oWvSoxgXqoH9D'
 
 const DEFAULT_REWARD = 48_686_320_000
 
