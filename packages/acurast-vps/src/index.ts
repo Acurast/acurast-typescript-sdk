@@ -1,5 +1,7 @@
 export { buildVpsJob, TUNNEL_SCRIPT_IPFS } from './job.js'
 export { generateTunnelKeypair, computeClientId } from './keypair.js'
 export { VPS_IMAGES, VPS_IMAGE_PRESETS } from './images.js'
+export { probeVpsReady } from './probe.js'
 export type { VpsImageName } from './images.js'
 export type { VpsKeypair, VpsRequest, VpsDeploymentPlan } from './types.js'
+export type { VpsProbeResult, ProbeOptions } from './probe.js'
