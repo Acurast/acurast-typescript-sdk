@@ -26,6 +26,8 @@ export interface VpsRequest {
   network?: 'mainnet' | 'canary'
   /** Override tunnel script IPFS CID (mainly for testing) */
   scriptCid?: string
+  /** Optional webhook URL — receives `log`/`started`/`error` JSON events from the tunnel bundle. */
+  callbackUrl?: string
 }
 
 export interface VpsDeploymentPlan {

@@ -57,13 +57,16 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     image,
     network: options.network ?? 'mainnet',
     onlyAttestedDevices: true,
-    startAt: { msFromNow: 120_000 },
+    // 5-min lead time gives processors room to fetch the ~200MB Ubuntu image,
+    // extract it, and install dropbear+python before their execution window
+    // opens. 10-min startDelay lets a slow processor still qualify.
+    startAt: { msFromNow: 5 * 60 * 1000 },
     assignmentStrategy: { type: AssignmentStrategyVariant.Single },
     execution: {
       type: 'onetime',
       maxExecutionTimeInMs: 2 * 60 * 60 * 1000,
     },
-    maxAllowedStartDelayInMs: 10_000,
+    maxAllowedStartDelayInMs: 10 * 60 * 1000,
     usageLimit: { maxMemory: 0, maxNetworkRequests: 0, maxStorage: 0 },
     numberOfReplicas: 1,
     requiredModules: [RequiredModules.Shell],
@@ -73,7 +76,7 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     // tunnel support). Passing the raw number avoids depending on the SDK's
     // bundled version map, which lags the on-chain release cadence.
     minProcessorVersions: { android: 128 },
-    includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK'],
+    includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK', 'CALLBACK_URL'],
     benchmarkFilters: {
       minRamTotalBytes: options.minMemory,
       minCpuSingleCoreScore: options.minCpu,
@@ -85,7 +88,12 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
   const envVars = [
     { key: 'TUNNEL_KEY', value: tunnelKey.privateKeyPkcs8.toString('base64') },
     { key: 'SSH_AUTHORIZED_KEY', value: options.sshKey },
+    // tunnel.py picks the relay set from NETWORK; without this it exits 1
+    { key: 'NETWORK', value: options.network ?? 'mainnet' },
   ]
+  if (options.callbackUrl) {
+    envVars.push({ key: 'CALLBACK_URL', value: options.callbackUrl })
+  }
 
   return { job, tunnelKey, clientId, envVars }
 }
