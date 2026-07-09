@@ -37,32 +37,30 @@ echo "export LD_PRELOAD=$GETIFADDRS_OVERRIDE_SO" > /etc/profile.d/ifaddrs-shim.s
 # Expose the injected Acurast env vars to interactive SSH sessions.
 env | sed 's/^/export /' > /etc/profile.d/acurast-env.sh
 
-# SSH auth: prefer key-based (via SSH_AUTHORIZED_KEY, injected by the deploy
-# agent). Fall back to a random root password only if no key was provided,
-# printed via the callback for debug — key auth is the intended path.
-if [ -n "$SSH_AUTHORIZED_KEY" ]; then
-    mkdir -p /root/.ssh
-    chmod 700 /root/.ssh
-    printf '%s\n' "$SSH_AUTHORIZED_KEY" > /root/.ssh/authorized_keys
-    chmod 600 /root/.ssh/authorized_keys
-    # Lock the password so only key auth works.
-    passwd -l root >/dev/null 2>&1 || true
-    send_log "SSH configured for key-based auth"
-else
-    RAND_PW=$(head -c 24 /dev/urandom | base64 | tr -d '\n/+=')
-    echo "root:$RAND_PW" | chpasswd
-    send_log "WARNING: SSH_AUTHORIZED_KEY not set — using generated password: $RAND_PW"
+# SSH auth: key-only via SSH_AUTHORIZED_KEY (injected by the deploy agent).
+# Refuse to start if unset — a password-only shell exposed to the internet
+# behind a stable subdomain is not something we want to hand out silently.
+if [ -z "$SSH_AUTHORIZED_KEY" ]; then
+    report_error "SSH_AUTHORIZED_KEY env var not set; aborting."
+    exit 1
 fi
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+printf '%s\n' "$SSH_AUTHORIZED_KEY" > /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+passwd -l root >/dev/null 2>&1 || true
+send_log "SSH authorized_keys configured ($(wc -c < /root/.ssh/authorized_keys) bytes)"
 
 mkdir -p /etc/dropbear
 dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key 2>/dev/null || true
 dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key 2>/dev/null || true
 
 echo "=== SSH server starting on port 2222 ==="
-send_log "Local SSH server starting on port 2222"
+send_log "Local SSH server starting on port 2222 (key auth only)"
 
-# -F foreground, -E stderr logs, -p bind, -R create host keys if missing
-dropbear -F -E -p 2222 -R &
+# -F foreground, -E stderr logs, -p bind, -R create host keys if missing,
+# -s disable password logins, -g disable root password logins (belt+braces).
+dropbear -F -E -p 2222 -R -s -g &
 DROPBEAR_PID=$!
 
 trap 'kill $DROPBEAR_PID $TUNNEL_PID 2>/dev/null' INT TERM EXIT
