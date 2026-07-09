@@ -28,6 +28,14 @@ export interface VpsRequest {
   scriptCid?: string
   /** Optional webhook URL — receives `log`/`started`/`error` JSON events from the tunnel bundle. */
   callbackUrl?: string
+  /**
+   * If set, install sslh in the bundle and expose an HTTP endpoint on the
+   * same subdomain via protocol multiplexing. The processor's `<hash>.acu.run`
+   * then serves both SSH (via the ProxyCommand recipe) and plain HTTP on this
+   * port. Small (~200ms) connect-time delay for SSH; no effect on HTTP.
+   * Must be >= 1024 (proot sandbox constraint).
+   */
+  httpPort?: number
 }
 
 export interface VpsDeploymentPlan {

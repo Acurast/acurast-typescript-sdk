@@ -54,9 +54,11 @@ _DOMAIN_ENV = f"DOMAIN_SUFFIX_{NETWORK.upper()}"
 DOMAIN_SUFFIX = os.environ.get(_DOMAIN_ENV) or NETWORKS[NETWORK]["domainSuffix"]
 
 SSH_PORT = 2222
-# Primary tunnel target is dropbear directly — its clientId is derived from
-# our TUNNEL_KEY, so the SSH URL is fully knowable off-chain.
-LOCAL_ADDR = f"127.0.0.1:{SSH_PORT}"
+SSLH_PORT = 2000
+HTTP_PORT = os.environ.get("HTTP_PORT")
+# When HTTP_PORT is set, start.sh has installed sslh on SSLH_PORT to demux
+# SSH+HTTP behind the same subdomain. Otherwise, target dropbear directly.
+LOCAL_ADDR = f"127.0.0.1:{SSLH_PORT if HTTP_PORT else SSH_PORT}"
 STATUS_POLL_INTERVAL_SEC = 30
 STAGING_CERTIFICATE = False
 
@@ -160,7 +162,8 @@ def main():
         "acmeStaging": STAGING_CERTIFICATE,
     }
 
-    report_log(f"Requesting reverse tunnel (ssh -> {LOCAL_ADDR})")
+    mode = f"sslh (ssh+http:{HTTP_PORT})" if HTTP_PORT else "ssh-only"
+    report_log(f"Requesting reverse tunnel ({mode} -> {LOCAL_ADDR})")
     info = rpc_call("tunnel_start", [spec])
     ssh_url = info.get("url")
     client_id = info.get("clientId")

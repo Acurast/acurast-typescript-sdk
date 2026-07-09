@@ -88,7 +88,25 @@ send_log "Local SSH server starting on port 2222 (key auth only)"
 dropbear -F -E -p 2222 -R -s -g &
 DROPBEAR_PID=$!
 
-trap 'kill $DROPBEAR_PID $TUNNEL_PID 2>/dev/null' INT TERM EXIT
+trap 'kill $DROPBEAR_PID $SSLH_PID $TUNNEL_PID 2>/dev/null' INT TERM EXIT
+
+# Opt-in HTTP multiplexing: when HTTP_PORT is injected, install sslh in front
+# of dropbear so the same subdomain serves both SSH and the user's HTTP app.
+# --on-timeout ssh handles the server-first quirk (dropbear sends banner before
+# the client says anything) — without it, connect stalls for the default 2s.
+if [ -n "$HTTP_PORT" ]; then
+    if ! command -v sslh >/dev/null 2>&1; then
+        apt-get install -y sslh
+    fi
+    send_log "Starting sslh on 127.0.0.1:2000 (ssh -> 2222, http -> ${HTTP_PORT})"
+    sslh --listen 127.0.0.1:2000 \
+         --ssh 127.0.0.1:2222 \
+         --http 127.0.0.1:"$HTTP_PORT" \
+         --on-timeout ssh \
+         --timeout 0.2 \
+         -F &
+    SSLH_PID=$!
+fi
 
 send_log "SSH ready on 2222, starting Acurast reverse tunnel"
 

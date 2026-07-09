@@ -39,14 +39,42 @@ processor at execution time.
 | Env var | Purpose |
 | --- | --- |
 | `CALLBACK_URL` | Webhook for `log` / `started` / `error` events. |
+| `HTTP_PORT` | Opt-in HTTP multiplexing (see below). When set, sslh is installed and the primary tunnel targets it instead of dropbear directly. |
 | `DOMAIN_SUFFIX_MAINNET` / `DOMAIN_SUFFIX_CANARY` | Custom domain suffix per network. If set on the deploying account, must also appear in `includeEnvironmentVariables`. |
 | `BRIDGE_SOCKET` | Injected by the Acurast processor host — do not set manually. |
 
+## Opt-in HTTP multiplexing
+
+When `HTTP_PORT` is injected, `start.sh` installs [sslh](https://github.com/yrutschle/sslh)
+and starts it on `127.0.0.1:2000` in front of both services. `tunnel.py` then
+targets sslh instead of dropbear, and sslh sniffs each new connection to
+route by protocol:
+
+```
+relay ──(TLS-terminated bytes)──> 127.0.0.1:2000  (sslh)
+                                        ├── SSH-prefixed  → 127.0.0.1:2222 (dropbear)
+                                        └── HTTP request  → 127.0.0.1:${HTTP_PORT} (user's app)
+```
+
+sslh flags:
+
+```
+sslh --listen 127.0.0.1:2000 \
+     --ssh 127.0.0.1:2222 \
+     --http 127.0.0.1:${HTTP_PORT} \
+     --on-timeout ssh --timeout 0.2 -F
+```
+
+`--on-timeout ssh` handles SSH's server-first quirk (dropbear speaks before the
+client), keeping the connect-time overhead to ~200 ms.
+
 ## Ports
 
-Only one port is used (>= 1024 required inside the proot sandbox):
+All ports live in the proot sandbox (>= 1024 required):
 
-- `2222` — dropbear SSH, targeted by the primary tunnel
+- `2222` — dropbear SSH
+- `2000` — sslh demux (only when `HTTP_PORT` is set)
+- `$HTTP_PORT` — user's HTTP app (only when set)
 
 ## Release
 

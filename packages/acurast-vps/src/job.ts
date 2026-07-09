@@ -21,7 +21,7 @@ import type { VpsRequest, VpsDeploymentPlan } from './types.js'
  * publish. The interface in this file and the script version are then locked
  * together per `@acurast/vps` release.
  */
-export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmchcxAu3xNw1s9uHdzid9F35Qiqou1BHuD6G1LCDEHEnW'
+export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmUYfuGBRRRHCpchv6bhFFqJfGDvG98FzLh73hMDgAALon'
 
 const DEFAULT_REWARD = 48_686_320_000
 
@@ -78,7 +78,7 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     // tunnel support). Passing the raw number avoids depending on the SDK's
     // bundled version map, which lags the on-chain release cadence.
     minProcessorVersions: { android: 128 },
-    includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK', 'CALLBACK_URL'],
+    includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK', 'CALLBACK_URL', 'HTTP_PORT'],
     benchmarkFilters: {
       minRamTotalBytes: options.minMemory,
       minCpuSingleCoreScore: options.minCpu,
@@ -95,6 +95,9 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
   ]
   if (options.callbackUrl) {
     envVars.push({ key: 'CALLBACK_URL', value: options.callbackUrl })
+  }
+  if (options.httpPort !== undefined) {
+    envVars.push({ key: 'HTTP_PORT', value: String(options.httpPort) })
   }
 
   return { config, job, tunnelKey, clientId, envVars }
