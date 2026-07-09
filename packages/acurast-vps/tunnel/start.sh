@@ -54,8 +54,13 @@ fi
 mkdir -p /etc/profile.d
 echo "export LD_PRELOAD=$GETIFADDRS_OVERRIDE_SO" > /etc/profile.d/ifaddrs-shim.sh
 
-# Expose the injected Acurast env vars to interactive SSH sessions.
-env | sed 's/^/export /' > /etc/profile.d/acurast-env.sh
+# Do not dump the injected Acurast env vars into a profile.d script:
+# SSH_AUTHORIZED_KEY contains spaces (the RSA blob + comment), so the naive
+# `env | sed 's/^/export /'` from the cargo example produced malformed
+# `export VAR=part1 part2 part3` lines that bash bailed on at every login.
+# It also leaks TUNNEL_KEY — a secret — into every interactive shell. If a
+# specific var needs to be in the login env, add it here explicitly and
+# single-quote the value.
 
 # SSH auth: key-only via SSH_AUTHORIZED_KEY (injected by the deploy agent).
 # Refuse to start if unset — a password-only shell exposed to the internet
