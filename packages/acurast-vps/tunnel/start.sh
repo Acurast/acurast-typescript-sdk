@@ -105,18 +105,41 @@ if [ -n "$HTTP_PORT" ]; then
 fi
 
 if [ -n "$HTTP_PORT" ]; then
-    send_log "Starting sslh v$(sslh -V 2>&1 | head -1) on 127.0.0.1:2000 (shell -> 2222, http -> ${HTTP_PORT})"
-    sslh --listen 127.0.0.1:2000 \
-         --ssh 127.0.0.1:2222 \
-         --http 127.0.0.1:"$HTTP_PORT" \
-         --on-timeout ssh \
-         --timeout 0.2 \
-         -F &
+    SSLH_VERSION=$(sslh -V 2>&1 | head -1)
+    send_log "sslh version: $SSLH_VERSION"
+
+    # sslh v2.x (Ubuntu 25.10+ ships 2.1.x) removed the v1 CLI shortcuts
+    # (--ssh, --http, --on-timeout, ...). Routing config now lives in a
+    # libconfig-style file passed via `-F`. This config works for both v1
+    # (which also accepts config files) and v2, so we don't branch on version.
+    cat > /tmp/sslh-vps.cfg <<EOF
+verbose: 0;
+foreground: true;
+inetd: false;
+numeric: false;
+transparent: false;
+timeout: 0.2;
+on-timeout: "ssh";
+
+listen:
+(
+    { host: "127.0.0.1"; port: "2000"; }
+);
+
+protocols:
+(
+    { name: "ssh";  host: "127.0.0.1"; port: "2222";        probe: "builtin"; },
+    { name: "http"; host: "127.0.0.1"; port: "${HTTP_PORT}"; probe: "builtin"; }
+);
+EOF
+
+    send_log "Starting sslh on 127.0.0.1:2000 (shell -> 2222, http -> ${HTTP_PORT})"
+    sslh -F /tmp/sslh-vps.cfg >/tmp/sslh.log 2>&1 &
     SSLH_PID=$!
-    # Give sslh a moment to bind, then verify it's actually listening.
     sleep 2
     if ! kill -0 "$SSLH_PID" 2>/dev/null; then
-        report_error "sslh died on startup — falling back to shell-only"
+        # Include the tail of sslh's own log so the callback tells us WHY it died.
+        report_error "sslh died on startup: $(tail -5 /tmp/sslh.log 2>/dev/null | tr '\n' ' | ') — falling back to shell-only"
         unset HTTP_PORT
         SSLH_PID=""
     else
