@@ -91,14 +91,21 @@ DROPBEAR_PID=$!
 trap 'kill $DROPBEAR_PID $SSLH_PID $TUNNEL_PID 2>/dev/null' INT TERM EXIT
 
 # Opt-in HTTP multiplexing: when HTTP_PORT is injected, install sslh in front
-# of dropbear so the same subdomain serves both SSH and the user's HTTP app.
-# --on-timeout ssh handles the server-first quirk (dropbear sends banner before
-# the client says anything) — without it, connect stalls for the default 2s.
+# of dropbear so the same subdomain serves both shell + HTTP on the same port.
+# --on-timeout handles dropbear's server-first quirk — without it, connect
+# stalls for the default 2s waiting for client bytes that never come.
 if [ -n "$HTTP_PORT" ]; then
     if ! command -v sslh >/dev/null 2>&1; then
-        apt-get install -y sslh
+        send_log "Installing sslh..."
+        if ! apt-get install -y sslh 2>&1 | tail -5; then
+            report_error "sslh install failed; falling back to shell-only (tunnel will target dropbear directly)"
+            unset HTTP_PORT
+        fi
     fi
-    send_log "Starting sslh on 127.0.0.1:2000 (ssh -> 2222, http -> ${HTTP_PORT})"
+fi
+
+if [ -n "$HTTP_PORT" ]; then
+    send_log "Starting sslh v$(sslh -V 2>&1 | head -1) on 127.0.0.1:2000 (shell -> 2222, http -> ${HTTP_PORT})"
     sslh --listen 127.0.0.1:2000 \
          --ssh 127.0.0.1:2222 \
          --http 127.0.0.1:"$HTTP_PORT" \
@@ -106,6 +113,15 @@ if [ -n "$HTTP_PORT" ]; then
          --timeout 0.2 \
          -F &
     SSLH_PID=$!
+    # Give sslh a moment to bind, then verify it's actually listening.
+    sleep 2
+    if ! kill -0 "$SSLH_PID" 2>/dev/null; then
+        report_error "sslh died on startup — falling back to shell-only"
+        unset HTTP_PORT
+        SSLH_PID=""
+    else
+        send_log "sslh alive (pid=$SSLH_PID)"
+    fi
 fi
 
 send_log "SSH ready on 2222, starting Acurast reverse tunnel"
