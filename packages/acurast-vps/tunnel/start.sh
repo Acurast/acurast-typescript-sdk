@@ -23,6 +23,26 @@ if ! python3 -c "import cryptography" >/dev/null 2>&1; then
     apt-get install -y python3 python3-cryptography
 fi
 
+# Interactive SSH sessions get a real shell with tab completion. Dropbear
+# spawns root's login shell from /etc/passwd; a minimal base often points that
+# at /bin/sh (dash, no completion). Ensure bash + bash-completion and make bash
+# root's login shell so `ssh root@host` lands in a completion-capable shell.
+if ! command -v bash >/dev/null 2>&1; then
+    apt-get install -y bash
+fi
+if [ ! -f /usr/share/bash-completion/bash_completion ]; then
+    apt-get install -y bash-completion
+fi
+usermod -s /bin/bash root 2>/dev/null || chsh -s /bin/bash root 2>/dev/null || true
+# Debian chains /etc/profile -> /etc/bash.bashrc (which sources bash-completion
+# for interactive shells). If the base image's profile doesn't, source it
+# ourselves for login shells so completion works regardless.
+cat > /etc/profile.d/bash-completion-fallback.sh <<'EOF'
+if [ -n "$PS1" ] && [ -z "$BASH_COMPLETION_VERSINFO" ] && [ -r /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+fi
+EOF
+
 if [ ! -f "$GETIFADDRS_OVERRIDE_SO" ]; then
     echo "=== Building getifaddrs override shim ==="
     apt-get install -y gcc libc6-dev
