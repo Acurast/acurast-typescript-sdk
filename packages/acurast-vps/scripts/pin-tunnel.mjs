@@ -12,18 +12,18 @@
  *
  * Usage:  node scripts/pin-tunnel.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, createReadStream, statSync } from 'node:fs'
+import { readFileSync, writeFileSync, rmSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { uploadScript } from '@acurast/sdk/ipfs'
+import { zipFolder, createManifest } from '@acurast/sdk/deploy'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkgRoot = join(__dirname, '..')
 const sdkRoot = join(pkgRoot, '../..')
 const tunnelDir = join(pkgRoot, 'tunnel')
 const tmpDir = join(pkgRoot, '.tmp')
-const stagingDir = join(tmpDir, 'bundle')
-const zipPath = join(tmpDir, 'acurast-vps-tunnel.zip')
+const deploymentName = 'acurast-vps-tunnel'
 
 // Load .env from SDK repo root
 const envPath = join(sdkRoot, '.env')
@@ -49,67 +49,23 @@ if (!urlMatch || !shaMatch) {
 }
 const image = { url: urlMatch[1], sha256: shaMatch[1] }
 
-// Build manifest matching the SDK's createManifest() shape
-const manifest = {
-  name: 'acurast-vps-tunnel',
-  version: 1,
-  entrypoint: 'start.sh',
-  restartPolicy: 'OnFailure',
-  image,
-}
+// Build the manifest + zip via the SDK, matching what `acurast deploy` produces.
+// zipFolder pins entry timestamps to 1980-01-01 so identical inputs yield
+// byte-identical zips (and therefore a deterministic CID).
+const manifest = createManifest(deploymentName, 'start.sh', 'OnFailure', image)
+console.log('Manifest:', manifest)
 
-console.log('Staging bundle...')
-rmSync(tmpDir, { recursive: true, force: true })
-mkdirSync(stagingDir, { recursive: true })
-cpSync(tunnelDir, stagingDir, { recursive: true })
-writeFileSync(join(stagingDir, 'manifest.json'), JSON.stringify(manifest))
-
-console.log('Manifest:', JSON.stringify(manifest, null, 2))
 console.log('Zipping...')
-execFileSync('zip', ['-X', '-r', zipPath, '.'], { cwd: stagingDir, stdio: 'inherit' })
+rmSync(tmpDir, { recursive: true, force: true })
+const { zipPath } = await zipFolder(tunnelDir, tmpDir, manifest, deploymentName)
 
 const zipSize = statSync(zipPath).size
 console.log(`Zip built: ${zipPath} (${zipSize} bytes)`)
 
+// Reuse the SDK's Pinata upload (same pinFileToIPFS contract `acurast deploy` uses)
 console.log('Uploading to Pinata...')
-const boundary = '----acurast-vps-' + Math.random().toString(36).slice(2)
-const CRLF = '\r\n'
-const preamble = Buffer.from(
-  `--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="file"; filename="acurast-vps-tunnel.zip"${CRLF}` +
-    `Content-Type: application/zip${CRLF}${CRLF}`,
-)
-const between = Buffer.from(
-  `${CRLF}--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="pinataOptions"${CRLF}${CRLF}` +
-    `{"cidVersion":0}${CRLF}` +
-    `--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="pinataMetadata"${CRLF}${CRLF}` +
-    `{"name":"acurast-vps-tunnel.zip"}`,
-)
-const closing = Buffer.from(`${CRLF}--${boundary}--${CRLF}`)
-const zipBuf = readFileSync(zipPath)
-const body = Buffer.concat([preamble, zipBuf, between, closing])
-
-const res = await fetch(`${IPFS_URL}/pinning/pinFileToIPFS`, {
-  method: 'POST',
-  headers: {
-    Authorization: `Bearer ${IPFS_API_KEY}`,
-    'Content-Type': `multipart/form-data; boundary=${boundary}`,
-    'Content-Length': String(body.length),
-  },
-  body,
-})
-if (!res.ok) {
-  console.error('Pinata upload failed:', res.status, await res.text())
-  process.exit(1)
-}
-const result = await res.json()
-const cid = result.IpfsHash
-if (!cid) {
-  console.error('Pinata response missing IpfsHash:', result)
-  process.exit(1)
-}
+const uri = await uploadScript({ file: zipPath }, { endpoint: IPFS_URL, apiKey: IPFS_API_KEY })
+const cid = uri.replace(/^ipfs:\/\//, '')
 
 console.log('')
 console.log('==============================================')
