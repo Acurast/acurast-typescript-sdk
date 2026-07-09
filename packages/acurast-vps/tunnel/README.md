@@ -11,11 +11,14 @@ script running on the device.
 1. `start.sh` (entrypoint) installs dropbear + python3-cryptography + curl,
    builds the `getifaddrs` shim, configures SSH auth from `SSH_AUTHORIZED_KEY`,
    and starts dropbear on `127.0.0.1:2222`.
-2. `tunnel.py` opens the Acurast reverse tunnel via the JSON-RPC bridge socket
-   (`$BRIDGE_SOCKET`, injected by the processor host):
-   - **Primary** (Let's Encrypt) → `127.0.0.1:8080` — whatever HTTP service the
-     user runs (the bundle does not start one).
-   - **Secondary** (self-signed) → `127.0.0.1:2222` — dropbear SSH.
+2. `tunnel.py` opens the Acurast **primary** reverse tunnel via the JSON-RPC
+   bridge socket (`$BRIDGE_SOCKET`, injected by the processor host):
+   - Primary (Let's Encrypt) → `127.0.0.1:2222` — dropbear SSH.
+
+   The secondary connection is intentionally unused: its clientId is
+   host-derived and can't be precomputed off-chain, defeating the whole
+   purpose of injecting `TUNNEL_KEY`. Users reach SSH via the primary domain
+   with an `openssl s_client` ProxyCommand (SSH-over-TLS).
 
 ## Deploy-agent contract
 
@@ -41,10 +44,9 @@ processor at execution time.
 
 ## Ports
 
-Both ports are hard-coded (>= 1024 required inside the proot sandbox):
+Only one port is used (>= 1024 required inside the proot sandbox):
 
-- `8080` — primary tunnel target (bring your own web server if you want HTTPS)
-- `2222` — dropbear SSH
+- `2222` — dropbear SSH, targeted by the primary tunnel
 
 ## Release
 

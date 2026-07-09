@@ -13,13 +13,15 @@ import type { VpsRequest, VpsDeploymentPlan } from './types.js'
  * IPFS CID of the tunnel bundle shipped in `../tunnel/` (start.sh + tunnel.py +
  * callback.sh + getifaddrs_override.c). The bundle expects the deploy agent to
  * inject `TUNNEL_KEY` (P-256 PKCS#8 base64) and `SSH_AUTHORIZED_KEY`, and
- * exposes dropbear on 2222 behind the secondary tunnel.
+ * points the *primary* Acurast tunnel directly at dropbear on 2222 — so the
+ * SSH domain (Let's Encrypt cert included) matches the clientId derived from
+ * the TUNNEL_KEY we control, and can be precomputed off-chain.
  *
  * Populated by the release flow: tar `tunnel/` → pin → paste the CID here →
  * publish. The interface in this file and the script version are then locked
  * together per `@acurast/vps` release.
  */
-export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmWzeuQM55UrHR9WWv7tEcpwYrM4NWmw7oWvSoxgXqoH9D'
+export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmS7gaFFiFHsZpQyRAQV59xA6SJCvfTruARAoN9WW4t5z5'
 
 const DEFAULT_REWARD = 48_686_320_000
 

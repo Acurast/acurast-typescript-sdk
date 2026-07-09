@@ -5,10 +5,15 @@ Reads the P-256 identity key from $TUNNEL_KEY (base64 PKCS#8 DER, injected by
 the deploy agent) so the tunnel domain — hex(sha256(compressed_pubkey)[:8]) —
 can be precomputed off-chain before the job matches. Then asks the Acurast
 Processor (via the JSON-RPC bridge on the abstract Unix socket named in
-$BRIDGE_SOCKET) to open a reverse tunnel:
+$BRIDGE_SOCKET) to open the primary reverse tunnel pointing directly at
+dropbear:
 
-- PRIMARY (Let's Encrypt cert)   -> 127.0.0.1:8080  (user's web app)
-- SECONDARY (self-signed cert)   -> 127.0.0.1:2222  (dropbear SSH)
+- PRIMARY (Let's Encrypt cert) -> 127.0.0.1:2222  (dropbear SSH)
+
+The secondary connection isn't used — its clientId is host-derived and can't
+be precomputed. Users reach SSH via the primary domain with an openssl
+s_client ProxyCommand (SSH-over-TLS through the same tunnel that would
+otherwise serve HTTPS).
 """
 
 import base64
@@ -48,10 +53,10 @@ TUNNEL_RELAYS = NETWORKS[NETWORK]["relays"]
 _DOMAIN_ENV = f"DOMAIN_SUFFIX_{NETWORK.upper()}"
 DOMAIN_SUFFIX = os.environ.get(_DOMAIN_ENV) or NETWORKS[NETWORK]["domainSuffix"]
 
-WEB_PORT = 8080
 SSH_PORT = 2222
-LOCAL_ADDR = f"127.0.0.1:{WEB_PORT}"
-SECONDARY_LOCAL_ADDR = f"127.0.0.1:{SSH_PORT}"
+# Primary tunnel target is dropbear directly — its clientId is derived from
+# our TUNNEL_KEY, so the SSH URL is fully knowable off-chain.
+LOCAL_ADDR = f"127.0.0.1:{SSH_PORT}"
 STATUS_POLL_INTERVAL_SEC = 30
 STAGING_CERTIFICATE = False
 
@@ -151,37 +156,23 @@ def main():
         "serverAddrs": TUNNEL_RELAYS,
         "domainSuffix": DOMAIN_SUFFIX,
         "localAddr": LOCAL_ADDR,
-        "secondaryLocalAddr": SECONDARY_LOCAL_ADDR,
         "primaryKey": {"algorithm": "Secp256r1", "bytes": TUNNEL_KEY_B64},
         "acmeStaging": STAGING_CERTIFICATE,
     }
 
-    report_log(f"Requesting reverse tunnel (web -> {LOCAL_ADDR}, ssh -> {SECONDARY_LOCAL_ADDR})")
+    report_log(f"Requesting reverse tunnel (ssh -> {LOCAL_ADDR})")
     info = rpc_call("tunnel_start", [spec])
-    web_url = info.get("url")
+    ssh_url = info.get("url")
     client_id = info.get("clientId")
-    ssh_url = info.get("secondaryUrl")
-    ssh_client_id = info.get("secondaryClientId")
-    report_log(f"Tunnel started: web url={web_url} clientId={client_id}")
+    report_log(f"Tunnel started: url={ssh_url} clientId={client_id}")
 
-    if not ssh_client_id:
-        report_error(
-            "No secondary tunnel returned — the processor build may predate "
-            "secondaryLocalAddr support; SSH will not be reachable."
-        )
-        connect_cmd = None
-    else:
-        report_log(f"SSH tunnel ready: url={ssh_url} secondaryClientId={ssh_client_id}")
-        connect_cmd = (
-            f"ssh -o ProxyCommand='openssl s_client -quiet "
-            f"-servername {ssh_client_id}.{DOMAIN_SUFFIX} "
-            f"-connect {ssh_client_id}.{DOMAIN_SUFFIX}:443' root@{ssh_client_id}"
-        )
-
-    report_started(web_url, ssh_url, SSH_PORT, connect_cmd)
-    print(f"Web page:  {web_url}")
-    if connect_cmd:
-        print(f"Connect via SSH-over-TLS:\n  {connect_cmd}")
+    connect_cmd = (
+        f"ssh -o ProxyCommand='openssl s_client -quiet "
+        f"-servername {client_id}.{DOMAIN_SUFFIX} "
+        f"-connect {client_id}.{DOMAIN_SUFFIX}:443' root@{client_id}"
+    )
+    report_started(ssh_url, ssh_url, SSH_PORT, connect_cmd)
+    print(f"Connect via SSH-over-TLS:\n  {connect_cmd}")
 
     stop_called = {"value": False}
 
