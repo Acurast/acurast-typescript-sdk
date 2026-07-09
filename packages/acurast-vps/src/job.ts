@@ -97,5 +97,5 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     envVars.push({ key: 'CALLBACK_URL', value: options.callbackUrl })
   }
 
-  return { job, tunnelKey, clientId, envVars }
+  return { config, job, tunnelKey, clientId, envVars }
 }

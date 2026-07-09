@@ -1,7 +1,7 @@
-import type { JobRegistration } from '@acurast/sdk/types'
+import type { AcurastProjectConfig, JobRegistration } from '@acurast/sdk/types'
 import type { VpsImageName } from './images.js'
 
-export type { JobRegistration }
+export type { JobRegistration, AcurastProjectConfig }
 
 export interface VpsKeypair {
   /** PKCS8 DER-encoded P-256 private key (passed to tunnel script as TUNNEL_KEY env var, base64-encoded) */
@@ -31,7 +31,13 @@ export interface VpsRequest {
 }
 
 export interface VpsDeploymentPlan {
-  /** Ready to pass to @acurast/sdk registerJob() */
+  /**
+   * The `AcurastProjectConfig` used to build the job — pass alongside `job`
+   * to `@acurast/sdk`'s `deployProjectCore`, which uses it for benchmark
+   * min-metrics + env-var scheduling relative to `startTime`.
+   */
+  config: AcurastProjectConfig
+  /** Ready to pass to @acurast/sdk registerJob() or deployProjectCore() */
   job: JobRegistration
   /** P-256 keypair for the primary Let's Encrypt tunnel connection */
   tunnelKey: VpsKeypair
