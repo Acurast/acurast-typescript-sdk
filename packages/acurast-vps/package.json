@@ -1,0 +1,49 @@
+{
+  "name": "@acurast/vps",
+  "version": "0.1.0",
+  "description": "VPS deployment helpers for Acurast — SSH-tunnel keypair generation, subdomain precomputation, and a pinned tunnel bundle that serves shell + optional HTTP on the same Let's Encrypt subdomain.",
+  "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Acurast/acurast-typescript-sdk.git",
+    "directory": "packages/acurast-vps"
+  },
+  "homepage": "https://github.com/Acurast/acurast-typescript-sdk/tree/main/packages/acurast-vps",
+  "bugs": "https://github.com/Acurast/acurast-typescript-sdk/issues",
+  "keywords": [
+    "acurast",
+    "vps",
+    "tunnel",
+    "sdk"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "tunnel",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "rm -rf ./dist && tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "pin-tunnel": "node scripts/pin-tunnel.mjs"
+  },
+  "dependencies": {
+    "@acurast/sdk": "^1.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
