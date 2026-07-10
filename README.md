@@ -7,6 +7,7 @@ A TypeScript library to interact with the Acurast network.
 | Name                                                                    | Description                                                           |
 | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [@acurast/sdk](./packages/acurast-sdk/)                                 | Programmatic SDK for interacting with the Acurast Cloud               |
+| [@acurast/vps](./packages/acurast-vps/)                                 | VPS deployment helpers — SSH-tunnel keypairs, subdomain precomputation, pinned tunnel bundle |
 | [@acurast/cli](https://github.com/Acurast/acurast-cli)                  | Command-line interface for deploying and managing Acurast jobs        |
 | [@acurast/dapp](./packages/acurast-dapp/)                               | ⚠️ Deprecated — tools useful in dApp development                      |
 | [@acurast/transport-websocket](./packages/acurast-transport-websocket/) | ⚠️ Deprecated — implementation of the Acurast P2P WebSocket Transport |
