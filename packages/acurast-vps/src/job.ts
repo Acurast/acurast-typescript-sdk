@@ -81,8 +81,8 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK', 'CALLBACK_URL', 'HTTP_PORT'],
     benchmarkFilters: {
       minRamTotalBytes: options.minMemory,
-      minCpuSingleCoreScore: options.minCpu,
-      minCpuMultiCoreScore: options.minCpuMulti,
+      minCpuSingleCoreScore: options.minCpuScore,
+      minCpuMultiCoreScore: options.minCpuMultiScore,
       minStorageAvailBytes: options.minStorage,
     },
   }

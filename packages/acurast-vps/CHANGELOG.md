@@ -32,8 +32,11 @@ mainnet processors.
 - Presets: `VPS_IMAGE_PRESETS.ubuntu` (Ubuntu 25.04 aarch64 proot-distro,
   pinned by sha256).
 - Processor filters forwarded to `benchmarkFilters` on the on-chain job:
-  `minMemory` (RAM bytes), `minCpu` (single-core score), `minCpuMulti`
-  (multi-core score), `minStorage` (available storage bytes). All optional.
+  `minMemory` (RAM bytes), `minCpuScore` (single-core benchmark),
+  `minCpuMultiScore` (multi-core benchmark), `minStorage` (available
+  storage bytes). All optional. Names mirror the `acurast-cli deploy`
+  flags (`--min-cpu-score`, `--min-cpu-multi-score`) so JSON body and
+  CLI stay in sync.
 - Optional `httpPort` in `VpsRequest` — when set, the bundle installs
   sslh 2.x (libconfig-format `-F` invocation) and multiplexes shell + HTTP
   on the same Let's Encrypt subdomain. Falls back to shell-only if sslh
