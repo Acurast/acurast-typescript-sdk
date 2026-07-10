@@ -59,11 +59,11 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     image,
     network: options.network ?? 'mainnet',
     onlyAttestedDevices: true,
-    // 1-min lead time is enough for a processor to match and be assigned before
+    // 3-min lead time is enough for a processor to match and be assigned before
     // the execution window opens; the image is fetched after the job starts, so
     // it doesn't need to be pulled in advance. 30s startDelay still lets a
     // slightly slow processor qualify.
-    startAt: { msFromNow: options.startDelayMs ?? 1 * 60 * 1000 },
+    startAt: { msFromNow: options.startDelayMs ?? 3 * 60 * 1000 },
     assignmentStrategy: { type: AssignmentStrategyVariant.Single },
     execution: {
       type: 'onetime',
@@ -79,7 +79,13 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     // tunnel support). Passing the raw number avoids depending on the SDK's
     // bundled version map, which lags the on-chain release cadence.
     minProcessorVersions: { android: 128 },
-    includeEnvironmentVariables: ['TUNNEL_KEY', 'SSH_AUTHORIZED_KEY', 'NETWORK', 'CALLBACK_URL', 'HTTP_PORT'],
+    includeEnvironmentVariables: [
+      'TUNNEL_KEY',
+      'SSH_AUTHORIZED_KEY',
+      'NETWORK',
+      'CALLBACK_URL',
+      'HTTP_PORT',
+    ],
     benchmarkFilters: {
       minRamTotalBytes: options.minMemory,
       minCpuSingleCoreScore: options.minCpuScore,
