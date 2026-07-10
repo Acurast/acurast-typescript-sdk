@@ -59,16 +59,17 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     image,
     network: options.network ?? 'mainnet',
     onlyAttestedDevices: true,
-    // 5-min lead time gives processors room to fetch the ~200MB Ubuntu image,
-    // extract it, and install dropbear+python before their execution window
-    // opens. 10-min startDelay lets a slow processor still qualify.
-    startAt: { msFromNow: 5 * 60 * 1000 },
+    // 1-min lead time is enough for a processor to match and be assigned before
+    // the execution window opens; the image is fetched after the job starts, so
+    // it doesn't need to be pulled in advance. 30s startDelay still lets a
+    // slightly slow processor qualify.
+    startAt: { msFromNow: 1 * 60 * 1000 },
     assignmentStrategy: { type: AssignmentStrategyVariant.Single },
     execution: {
       type: 'onetime',
       maxExecutionTimeInMs: 2 * 60 * 60 * 1000,
     },
-    maxAllowedStartDelayInMs: 10 * 60 * 1000,
+    maxAllowedStartDelayInMs: 30 * 1000,
     usageLimit: { maxMemory: 0, maxNetworkRequests: 0, maxStorage: 0 },
     numberOfReplicas: 1,
     requiredModules: [RequiredModules.Shell],
