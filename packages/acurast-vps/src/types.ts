@@ -20,6 +20,10 @@ export interface VpsRequest {
   minMemory?: number
   /** Minimum CPU single-core benchmark score */
   minCpu?: number
+  /** Minimum CPU multi-core benchmark score */
+  minCpuMulti?: number
+  /** Minimum available storage bytes (mapped to acurastCompute benchmark filter) */
+  minStorage?: number
   /** Reward per execution in ACU micro-units (default: 48_686_320_000) */
   reward?: number
   /** Target network (default: 'mainnet') */

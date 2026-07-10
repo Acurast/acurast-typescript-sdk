@@ -82,6 +82,8 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     benchmarkFilters: {
       minRamTotalBytes: options.minMemory,
       minCpuSingleCoreScore: options.minCpu,
+      minCpuMultiCoreScore: options.minCpuMulti,
+      minStorageAvailBytes: options.minStorage,
     },
   }
 

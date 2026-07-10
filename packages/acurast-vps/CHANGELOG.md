@@ -31,6 +31,9 @@ mainnet processors.
   - `getifaddrs_override.c` — proot compatibility shim.
 - Presets: `VPS_IMAGE_PRESETS.ubuntu` (Ubuntu 25.04 aarch64 proot-distro,
   pinned by sha256).
+- Processor filters forwarded to `benchmarkFilters` on the on-chain job:
+  `minMemory` (RAM bytes), `minCpu` (single-core score), `minCpuMulti`
+  (multi-core score), `minStorage` (available storage bytes). All optional.
 - Optional `httpPort` in `VpsRequest` — when set, the bundle installs
   sslh 2.x (libconfig-format `-F` invocation) and multiplexes shell + HTTP
   on the same Let's Encrypt subdomain. Falls back to shell-only if sslh
