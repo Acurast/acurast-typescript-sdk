@@ -36,7 +36,10 @@ export interface ProbeOptions {
  * this so clients can drive their own retry loop instead of the agent
  * having to track deployment state.
  */
-export const probeVpsReady = (domain: string, options: ProbeOptions = {}): Promise<VpsProbeResult> => {
+export const probeVpsReady = (
+  domain: string,
+  options: ProbeOptions = {},
+): Promise<VpsProbeResult> => {
   const port = options.port ?? 443
   const timeoutMs = options.timeoutMs ?? 10_000
 
@@ -62,7 +65,7 @@ export const probeVpsReady = (domain: string, options: ProbeOptions = {}): Promi
       const c = socket.getPeerCertificate()
       if (c && c.subject) {
         const cn = (v: string | string[] | undefined): string =>
-          Array.isArray(v) ? v[0] ?? '' : v ?? ''
+          Array.isArray(v) ? (v[0] ?? '') : (v ?? '')
         cert = {
           subject: cn(c.subject?.CN),
           issuer: cn(c.issuer?.CN),
@@ -83,7 +86,9 @@ export const probeVpsReady = (domain: string, options: ProbeOptions = {}): Promi
         finish({ ready: false, error: 'unrecognized banner', cert })
       }
     })
-    socket.on('timeout', () => finish({ ready: false, error: `timeout after ${timeoutMs}ms`, cert }))
+    socket.on('timeout', () =>
+      finish({ ready: false, error: `timeout after ${timeoutMs}ms`, cert }),
+    )
     socket.on('error', (err) => finish({ ready: false, error: err.message, cert }))
     socket.on('end', () => finish({ ready: false, error: 'connection closed before banner', cert }))
   })

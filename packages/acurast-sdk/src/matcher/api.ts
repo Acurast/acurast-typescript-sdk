@@ -13,8 +13,7 @@ import {
 const TIMEOUT_MS = 10_000
 
 export type ApiResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string; jsonRpcCode?: number }
+  { ok: true; data: T } | { ok: false; error: string; jsonRpcCode?: number }
 
 export interface MatchCheckResult {
   matchable: boolean
