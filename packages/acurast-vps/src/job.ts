@@ -63,13 +63,13 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     // the execution window opens; the image is fetched after the job starts, so
     // it doesn't need to be pulled in advance. 30s startDelay still lets a
     // slightly slow processor qualify.
-    startAt: { msFromNow: 1 * 60 * 1000 },
+    startAt: { msFromNow: options.startDelayMs ?? 1 * 60 * 1000 },
     assignmentStrategy: { type: AssignmentStrategyVariant.Single },
     execution: {
       type: 'onetime',
       maxExecutionTimeInMs: 2 * 60 * 60 * 1000,
     },
-    maxAllowedStartDelayInMs: 30 * 1000,
+    maxAllowedStartDelayInMs: options.maxStartDelayMs ?? 30 * 1000,
     usageLimit: { maxMemory: 0, maxNetworkRequests: 0, maxStorage: 0 },
     numberOfReplicas: 1,
     requiredModules: [RequiredModules.Shell],

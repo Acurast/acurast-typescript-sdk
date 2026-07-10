@@ -40,6 +40,10 @@ export interface VpsRequest {
    * Must be >= 1024 (proot sandbox constraint).
    */
   httpPort?: number
+  /** Ms from now until the execution window opens (default: 60_000) */
+  startDelayMs?: number
+  /** Max ms a processor may start after startAt and still qualify (default: 30_000) */
+  maxStartDelayMs?: number
 }
 
 export interface VpsDeploymentPlan {
