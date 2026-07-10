@@ -109,11 +109,7 @@ export function createPayloadMessage(
 }
 
 export type V1Message =
-  | InitMessage
-  | ChallengeMessage
-  | ResponseMessage
-  | AcceptedMessage
-  | PayloadMessage
+  InitMessage | ChallengeMessage | ResponseMessage | AcceptedMessage | PayloadMessage
 
 export const V1MessageCode: Record<V1Message['type'], number> = {
   init: 0x00,
