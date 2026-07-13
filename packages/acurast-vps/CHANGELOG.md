@@ -3,6 +3,27 @@
 All notable changes to `@acurast/vps` are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0]
+
+### Changed
+
+- `VpsRequest.reward` is now **required** — the `DEFAULT_REWARD` fallback was
+  removed. The right price is deployment- and market-specific, so silently
+  defaulting risked over- or under-paying.
+- `VpsRequest.maxExecutionTimeInMs` is now **required**. It bounds total cost.
+- Replaced `VpsRequest.startDelayMs?: number` with
+  `VpsRequest.startAt?: { msFromNow: number } | { timestamp: number | string }`,
+  mirroring `@acurast/sdk`'s own `startAt` union so an absolute planned start
+  can be pinned as well as a relative lead time. Defaults to
+  `{ msFromNow: 3 * 60_000 }`.
+
+### Added
+
+- `VpsRequest.minProcessorReputation?: number` — optional processor-reputation
+  filter (unset = no filter), alongside the existing benchmark filters.
+- `start.sh` installs `bash` + `bash-completion` and sets bash as root's login
+  shell so interactive SSH sessions get tab completion.
+
 ## [0.1.0] — Initial release
 
 First public release. Battle-tested via the

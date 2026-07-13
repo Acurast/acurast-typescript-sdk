@@ -92,7 +92,7 @@ def post_callback(payload):
         req = urlrequest.Request(
             CALLBACK_URL,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "User-Agent": "acurast-vps-tunnel/0.1.0"},
+            headers={"Content-Type": "application/json", "User-Agent": "acurast-vps-tunnel/0.2.0"},
             method="POST",
         )
         urlrequest.urlopen(req, timeout=10).close()

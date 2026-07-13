@@ -24,8 +24,14 @@ export interface VpsRequest {
   minCpuMultiScore?: number
   /** Minimum available storage bytes (mapped to acurastCompute benchmark filter) */
   minStorage?: number
-  /** Reward per execution in ACU micro-units (default: 48_686_320_000) */
-  reward?: number
+  /** Minimum processor reputation (0..1_000_000 scale; default: 0 = no filter) */
+  minProcessorReputation?: number
+  /**
+   * Reward per execution in ACU micro-units. Required — there is no default,
+   * since the right price is deployment- and market-specific and silently
+   * defaulting risks over- or under-paying.
+   */
+  reward: number
   /** Target network (default: 'mainnet') */
   network?: 'mainnet' | 'canary'
   /** Override tunnel script IPFS CID (mainly for testing) */
@@ -40,10 +46,21 @@ export interface VpsRequest {
    * Must be >= 1024 (proot sandbox constraint).
    */
   httpPort?: number
-  /** Ms from now until the execution window opens (default: 60_000) */
-  startDelayMs?: number
+  /**
+   * When the execution window opens — either relative (`{ msFromNow }`) or
+   * absolute (`{ timestamp }`, Unix epoch ms number or `new Date(...)` string).
+   * Defaults to `{ msFromNow: 3 * 60_000 }`. Must leave enough lead time for a
+   * processor to match (the SDK requires >= 2 min from now).
+   */
+  startAt?: AcurastProjectConfig['startAt']
   /** Max ms a processor may start after startAt and still qualify (default: 30_000) */
   maxStartDelayMs?: number
+  /**
+   * How long the VPS is allowed to run before the processor tears it down.
+   * Setup time is part of running time. Required — there is no default, since
+   * it bounds the total cost and the right window is deployment-specific.
+   */
+  maxExecutionTimeInMs: number
 }
 
 export interface VpsDeploymentPlan {
