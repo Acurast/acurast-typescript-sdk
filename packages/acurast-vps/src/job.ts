@@ -21,9 +21,7 @@ import type { VpsRequest, VpsDeploymentPlan } from './types.js'
  * publish. The interface in this file and the script version are then locked
  * together per `@acurast/vps` release.
  */
-export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmcCBFApyb3AyLmLqbjbjJjkojxwYDu6jBMa8yJHZ7xz8E'
-
-const DEFAULT_REWARD = 48_686_320_000
+export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmV59iKibbcCadsvw8TRbsoSTUHxdvCuSLmQtiLNxyP9k3'
 
 /**
  * Build a VPS deployment plan from a `vps: {}` request body:
@@ -32,7 +30,7 @@ const DEFAULT_REWARD = 48_686_320_000
  * 3. Returns env vars to inject after the job is matched
  *
  * Usage:
- *   const plan = buildVpsJob({ sshKey: '...', image: 'ubuntu' })
+ *   const plan = buildVpsJob({ sshKey: '...', reward: 48_686_320_000, image: 'ubuntu' })
  *   const txHash = await registerJob(api, signer, plan.job, callback)
  *   // after WaitingForMatch, inject plan.envVars via setEnvVars
  *   return { domain: `https://${plan.clientId}.acu.run`, txHash }
@@ -59,22 +57,25 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
     image,
     network: options.network ?? 'mainnet',
     onlyAttestedDevices: true,
-    // 3-min lead time is enough for a processor to match and be assigned before
-    // the execution window opens; the image is fetched after the job starts, so
-    // it doesn't need to be pulled in advance. 30s startDelay still lets a
-    // slightly slow processor qualify.
-    startAt: { msFromNow: options.startDelayMs ?? 3 * 60 * 1000 },
+    // Relative (`msFromNow`) or absolute (`timestamp`) start. The 3-min default
+    // lead time is enough for a processor to match and be assigned before the
+    // execution window opens; the image is fetched after the job starts, so it
+    // doesn't need to be pulled in advance. 30s startDelay still lets a slightly
+    // slow processor qualify.
+    startAt: options.startAt ?? { msFromNow: 3 * 60 * 1000 },
     assignmentStrategy: { type: AssignmentStrategyVariant.Single },
     execution: {
       type: 'onetime',
-      maxExecutionTimeInMs: 2 * 60 * 60 * 1000,
+      maxExecutionTimeInMs: options.maxExecutionTimeInMs,
     },
     maxAllowedStartDelayInMs: options.maxStartDelayMs ?? 30 * 1000,
     usageLimit: { maxMemory: 0, maxNetworkRequests: 0, maxStorage: 0 },
     numberOfReplicas: 1,
     requiredModules: [RequiredModules.Shell],
-    minProcessorReputation: 0,
-    maxCostPerExecution: options.reward ?? DEFAULT_REWARD,
+    // 0 = no reputation filter (the on-chain config field is required, so an
+    // unset VpsRequest.minProcessorReputation maps to the no-filter default).
+    minProcessorReputation: options.minProcessorReputation ?? 0,
+    maxCostPerExecution: options.reward,
     // buildNumber 128 = Android 1.26.0 (first version with secondaryLocalAddr
     // tunnel support). Passing the raw number avoids depending on the SDK's
     // bundled version map, which lags the on-chain release cadence.
