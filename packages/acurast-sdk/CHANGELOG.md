@@ -1,8 +1,13 @@
 # Changelog
 
-## 1.3.0
+## 1.3.0-beta.0
 
 ### Added
+
+- **Transaction queue** — a per-account submission authority that serializes extrinsics through a single nonce source, eliminating the `Transaction has too low priority to replace another transaction` / 1014 races when a deploy and its follow-up `setEnvironments` (or successive deploys) are submitted from the same signer.
+  - New `@acurast/sdk/chain` exports: `SequentialTransactionQueue` and `BatchingTransactionQueue` adapters, the `BaseTransactionQueue` base for bring-your-own implementations, and `getDefaultQueue` / `setDefaultQueue` for the shared per-account default.
+  - New types: `TransactionQueue`, `EnqueueHandlers`, `QueuedItem`, `BatchingQueueOptions`.
+  - `registerJob`, `setEnvVars`, and `deployProjectCore` accept an optional `queue`. Left unset, they use the shared per-account queue, so the deploy and its background env-var write (and any following deploy) never collide on the nonce. Pass a custom queue (e.g. `BatchingTransactionQueue`) to change the strategy.
 
 - **Browser support & injectable signers** — run deployments from a browser (e.g. the CLI Playground) without Node-only dependencies.
   - New `@acurast/sdk/browser` entry point. Re-exports `types`, `chain`, and `matcher`, plus browser-safe deploy primitives — no `fs`, `adm-zip`, `form-data`, or `node:path`.
@@ -15,6 +20,10 @@
 
 - `setEnvVars` reliability: reworked the assigned-processor handling and encryption flow in `set-env-vars.ts` / `deploy-project.ts`.
 - Config validation: for the `Single` assignment strategy, the number of `instantMatch` entries must equal `numberOfReplicas` (each slot needs exactly one matched processor).
+
+### Changed
+
+- `registerJob` now submits via the transaction queue instead of owning its own `signAndSend`. The rich `DeploymentError` (with the `section.name` dispatch-error code) is captured in the submission callback so it survives the generic queue rejection, and the job-status subscription is guarded against duplicate setup.
 
 ## 1.2.2
 

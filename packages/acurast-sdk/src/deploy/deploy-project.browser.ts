@@ -3,6 +3,7 @@ import type { DeploymentStatus } from '../types/deployment-status.js'
 import type { EnvVar } from '../types/env.js'
 import type { KeyStore } from '../chain/key-store.js'
 import type { AcurastSigner } from '../chain/signer.js'
+import type { TransactionQueue } from '../chain/tx-queue.js'
 import type { Logger } from './logger.js'
 import { deployProjectCore } from './deploy-core.js'
 import { zipProjectBrowser, type BrowserBundleFiles } from './bundle.browser.js'
@@ -31,6 +32,12 @@ export interface DeployProjectBrowserOptions {
   keyStore?: KeyStore
   /** Optional debug logger. */
   logger?: Logger
+  /**
+   * Submission authority shared by the deploy + env-var extrinsics. Defaults
+   * to the shared per-account queue. See `TransactionQueue` in
+   * `@acurast/sdk/chain`.
+   */
+  queue?: TransactionQueue
   /**
    * Override the script-resolution step entirely — e.g. to upload via the
    * hub's own `IpfsService` instead of the SDK's `fetch` upload. When provided,
@@ -81,6 +88,7 @@ export const deployProjectBrowser = async (
     statusCallback: options.statusCallback,
     keyStore: options.keyStore,
     logger: options.logger,
+    queue: options.queue,
     resolveScript,
   })
 }
