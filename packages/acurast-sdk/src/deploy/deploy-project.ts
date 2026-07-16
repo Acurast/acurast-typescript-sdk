@@ -4,6 +4,7 @@ import { type AcurastProjectConfig, type JobRegistration, RestartPolicy } from '
 import type { EnvVar } from '../types/env.js'
 import type { KeyStore } from '../chain/key-store.js'
 import type { AcurastSigner } from '../chain/signer.js'
+import type { TransactionQueue } from '../chain/tx-queue.js'
 import { uploadScript, type IpfsUploadOptions } from '../ipfs/upload.js'
 import { zipFolder, createManifest, checkIsFolder } from './bundle.js'
 import { NOOP_LOGGER, type Logger } from './logger.js'
@@ -31,6 +32,12 @@ export interface DeployProjectOptions {
   keyStore?: KeyStore
   /** Optional debug logger. */
   logger?: Logger
+  /**
+   * Submission authority shared by the deploy + env-var extrinsics. Defaults
+   * to the shared per-account queue (prevents nonce collisions across rapid
+   * successive deploys). See `TransactionQueue` in `@acurast/sdk/chain`.
+   */
+  queue?: TransactionQueue
   /**
    * Optional bundle-transform hook, invoked after `zipFolder` and before
    * IPFS upload. The hook may return a new zip path (e.g. one with a
@@ -111,6 +118,7 @@ export const deployProject = async (
     statusCallback: options.statusCallback,
     keyStore: options.keyStore,
     logger: options.logger,
+    queue: options.queue,
     resolveScript,
   })
 }

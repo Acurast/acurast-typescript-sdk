@@ -3,6 +3,7 @@ import { JobEnvironmentService } from './env-encryption.js'
 import type { EnvVar, Job, JobAssignmentInfo, JobId } from '../types/env.js'
 import { toNumber } from './job-to-number.js'
 import type { AcurastSigner } from './signer.js'
+import type { TransactionQueue } from './tx-queue.js'
 import type { KeyStore } from './key-store.js'
 import { NOOP_LOGGER, type Logger } from '../deploy/logger.js'
 
@@ -11,6 +12,13 @@ export interface SetEnvVarsOptions {
   wallet: AcurastSigner
   /** WebSocket RPC endpoint for the Acurast chain. */
   rpcEndpoint: string
+  /**
+   * Submission authority for the `setEnvironments` extrinsic. Leave unset to
+   * use the shared per-account queue (which already prevents nonce collisions
+   * with the deploy that spawned this). Pass the deploy's queue to share one
+   * instance (needed only for a custom/advanced queue).
+   */
+  queue?: TransactionQueue
   /** Persistent ECDH keypair storage. Defaults to in-memory. */
   keyStore?: KeyStore
   /**
@@ -61,6 +69,9 @@ export const setEnvVars = async (
   const rpcTimeoutMs = 60_000
 
   const acurast = new AcurastService(options.rpcEndpoint)
+  if (options.queue !== undefined) {
+    acurast.queue = options.queue
+  }
 
   try {
     let jobAssignmentInfos: JobAssignmentInfo[] = []

@@ -54,3 +54,16 @@ export { setEnvVars } from './set-env-vars.js'
 export type { SetEnvVarsOptions } from './set-env-vars.js'
 export { InMemoryKeyStore } from './key-store.js'
 export type { KeyStore } from './key-store.js'
+export {
+  BaseTransactionQueue,
+  SequentialTransactionQueue,
+  BatchingTransactionQueue,
+  getDefaultQueue,
+  setDefaultQueue,
+} from './tx-queue.js'
+export type {
+  TransactionQueue,
+  EnqueueHandlers,
+  QueuedItem,
+  BatchingQueueOptions,
+} from './tx-queue.js'

@@ -153,6 +153,34 @@ def rpc_call(method, params):
     return resp.get("result")
 
 
+TUNNEL_START_MAX_ATTEMPTS = 5
+TUNNEL_START_BACKOFF_SEC = 3  # grows 3, 6, 12, 24…
+
+
+def tunnel_start_with_retry(spec):
+    """Establish the tunnel, retrying on any RPC failure with backoff.
+
+    Establishment can fail transiently (e.g. a java.io.EOFException when the
+    relay dial or TLS handshake is dropped). We retry any error rather than
+    matching on the message, so new transient failure modes are covered too.
+    """
+    delay = TUNNEL_START_BACKOFF_SEC
+    for attempt in range(1, TUNNEL_START_MAX_ATTEMPTS + 1):
+        try:
+            return rpc_call("tunnel_start", [spec])
+        except Exception as e:
+            if attempt == TUNNEL_START_MAX_ATTEMPTS:
+                raise
+            report_log(f"tunnel_start attempt {attempt} failed ({e}); retrying in {delay}s")
+            # Reset any half-open state on the processor before re-dialing.
+            try:
+                rpc_call("tunnel_stop", [])
+            except Exception:
+                pass
+            time.sleep(delay)
+            delay *= 2
+
+
 def main():
     spec = {
         "serverAddrs": TUNNEL_RELAYS,
@@ -164,7 +192,7 @@ def main():
 
     mode = f"sslh (ssh+http:{HTTP_PORT})" if HTTP_PORT else "ssh-only"
     report_log(f"Requesting reverse tunnel ({mode} -> {LOCAL_ADDR})")
-    info = rpc_call("tunnel_start", [spec])
+    info = tunnel_start_with_retry(spec)
     ssh_url = info.get("url")
     client_id = info.get("clientId")
     report_log(f"Tunnel started: url={ssh_url} clientId={client_id}")
