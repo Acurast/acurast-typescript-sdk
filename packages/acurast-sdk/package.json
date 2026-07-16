@@ -1,6 +1,6 @@
 {
   "name": "@acurast/sdk",
-  "version": "1.3.0-beta.0",
+  "version": "1.4.0-beta.0",
   "description": "Programmatic SDK for interacting with the Acurast Cloud.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",
