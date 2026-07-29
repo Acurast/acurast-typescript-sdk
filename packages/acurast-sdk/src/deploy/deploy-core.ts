@@ -7,6 +7,7 @@ import { registerJob } from '../chain/register-job.js'
 import { setEnvVars } from '../chain/set-env-vars.js'
 import type { KeyStore } from '../chain/key-store.js'
 import type { AcurastSigner } from '../chain/signer.js'
+import { type TransactionQueue, getDefaultQueue } from '../chain/tx-queue.js'
 import { NOOP_LOGGER, type Logger } from './logger.js'
 
 export interface DeployProjectCoreOptions {
@@ -24,6 +25,14 @@ export interface DeployProjectCoreOptions {
   keyStore?: KeyStore
   /** Optional debug logger. */
   logger?: Logger
+  /**
+   * Submission authority shared by the deploy extrinsic and the follow-up
+   * `setEnvironments` extrinsic. Defaults to the shared per-account queue, so
+   * successive deploys and their background env-var writes never collide on
+   * the nonce. Pass a custom queue (e.g. `BatchingTransactionQueue`) to change
+   * the strategy.
+   */
+  queue?: TransactionQueue
   /**
    * Resolve `config` to an `ipfs://<cid>` URI. Encapsulates the
    * environment-specific bundling + upload (fs/adm-zip in Node, JSZip/fetch in
@@ -50,6 +59,10 @@ export const deployProjectCore = async (
     provider: wsProvider,
     noInitWarn: true,
   })
+
+  // One submission authority for both the deploy and its later setEnvironments
+  // extrinsic, so they (and any following deploy) share a single nonce source.
+  const queue = options.queue ?? getDefaultQueue(api, options.wallet)
 
   const ipfsHash = await options.resolveScript(config)
   logger.debug(`ipfsHash: ${ipfsHash}`)
@@ -106,6 +119,7 @@ export const deployProjectCore = async (
               keyStore: options.keyStore,
               abortIfPastStartMs: job.schedule.startTime - 60_000,
               logger,
+              queue,
             },
           )
 
@@ -151,6 +165,7 @@ export const deployProjectCore = async (
 
     const result = await registerJob(api, options.wallet, job, statusCallbackWrapper, {
       projectConfig: config,
+      queue,
     })
 
     options.statusCallback(DeploymentStatus.Submit, { txHash: result })

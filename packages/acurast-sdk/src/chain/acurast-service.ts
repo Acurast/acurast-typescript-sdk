@@ -1,9 +1,9 @@
 import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic, UnsubscribePromise, VoidFn } from '@polkadot/api/types'
-import type { DispatchError } from '@polkadot/types/interfaces'
 import type { Event } from '@polkadot/types/interfaces/system'
-import { type AcurastSigner, resolveSigner } from './signer.js'
+import { type AcurastSigner } from './signer.js'
+import { type TransactionQueue, getDefaultQueue } from './tx-queue.js'
 import '@polkadot/api-augment'
 import type { Hash } from '@polkadot/types/interfaces/runtime'
 import type { Codec } from '@polkadot/types/types'
@@ -30,19 +30,6 @@ export interface EventSub<T> {
   sub: (data: T) => void
 }
 
-const getHumanReadableError = (api: ApiPromise, dispatchError: DispatchError | undefined) => {
-  if (!dispatchError) {
-    return
-  }
-  if (dispatchError.isModule) {
-    const decoded = api.registry.findMetaError(dispatchError.asModule)
-    const { docs, name, section } = decoded
-    return `${section}.${name}: ${docs.join(' ')}`
-  } else {
-    return dispatchError.toString()
-  }
-}
-
 /**
  * Thin wrapper over a `@polkadot/api` `ApiPromise` configured with the
  * Acurast chain's custom type registry. Holds connection state so repeated
@@ -53,6 +40,13 @@ const getHumanReadableError = (api: ApiPromise, dispatchError: DispatchError | u
  */
 export class AcurastService {
   public api?: ApiPromise
+
+  /**
+   * Submission authority for this service's extrinsics. Leave unset to use the
+   * shared per-account queue (so submissions never collide with other SDK
+   * paths using the same signer); set it to share one queue with a deploy.
+   */
+  public queue?: TransactionQueue
 
   private readonly wsProvider: WsProvider
   private connectPromise?: Promise<ApiPromise>
@@ -280,32 +274,9 @@ export class AcurastService {
     keyring: AcurastSigner,
     calls: SubmittableExtrinsic<'promise', any>[],
   ): Promise<Hash> {
-    let call: SubmittableExtrinsic<'promise', any>
-    if (calls.length > 1) {
-      call = api.tx.utility.batch(calls)
-    } else {
-      call = calls[0]
-    }
-
-    const { account, options } = resolveSigner(keyring)
-
-    return new Promise(async (resolve, reject) => {
-      const unsub = await call
-        .signAndSend(account, options, ({ status, events: _events, dispatchError }) => {
-          if (dispatchError) {
-            const humanReadableError = getHumanReadableError(api, dispatchError)
-            if (unsub) unsub()
-            reject(new Error(humanReadableError))
-            return
-          }
-          if (status.isInBlock) {
-            if (unsub) unsub()
-            resolve(status.hash)
-            return
-          }
-        })
-        .catch(reject)
-    })
+    const call = calls.length > 1 ? api.tx.utility.batch(calls) : calls[0]
+    const queue = this.queue ?? getDefaultQueue(api, keyring)
+    return queue.enqueue(call)
   }
 
   private codectToJobId(codec: Codec): JobId {

@@ -8,10 +8,16 @@ import {
 } from '../types/project.js'
 import { DeploymentStatus } from '../types/deployment-status.js'
 import { buildMinMetricsForDeploy } from './benchmark-filters.js'
-import { type AcurastSigner, resolveSigner } from './signer.js'
+import { type AcurastSigner } from './signer.js'
+import { type TransactionQueue, getDefaultQueue } from './tx-queue.js'
 
 export interface RegisterJobOptions {
   projectConfig?: AcurastProjectConfig
+  /**
+   * Submission authority. Defaults to the shared per-account queue so nonces
+   * never collide with other SDK submissions from the same signer.
+   */
+  queue?: TransactionQueue
 }
 
 export const registerJob = (
@@ -102,96 +108,99 @@ export const registerJob = (
       ? buildMinMetricsForDeploy(api, registerOptions.projectConfig)
       : api.createType('Option<Vec<(u8, u128, u128)>>', [])
 
-    try {
-      const { account, options } = resolveSigner(injector)
-      const unsub = await api.tx['acurastMarketplace']
-        ['deploy'](jobRegistration, mutability, reuseKeysFrom, minMetrics)
-        .signAndSend(account, options, async ({ status, events, txHash, dispatchError }) => {
-          const jobRegistrationEvents = events.filter((event) => {
-            return (
-              event.event.section === 'acurast' && event.event.method === 'JobRegistrationStoredV2'
-            )
-          })
-          const jobIds = jobRegistrationEvents.map((jobRegistrationEvent) => {
-            return jobRegistrationEvent.event.data[0]
-          })
+    // Structured dispatch error captured from the submission callback so the
+    // rich DeploymentError (with section.name code) survives the generic
+    // rejection the queue surfaces.
+    let capturedError: DeploymentError | undefined
+    let jobStatusSubscribed = false
 
-          if (jobIds.length > 0) {
-            statusCallback(DeploymentStatus.WaitingForMatch, {
-              jobIds: jobIds.map((jobId) => jobId.toJSON()),
-            })
-            const unsubStoredJobStatus = await api.query.acurastMarketplace.storedJobStatus.multi(
-              jobIds,
-              (statuses) => {
-                const stat = api.registry.createType(
-                  'Vec<Option<PalletAcurastMarketplaceJobStatus>>',
-                  statuses,
-                )
-                stat
-                  .map((value, index) => {
-                    if (value.isSome) {
-                      const statusValue = value.unwrap() as any
-                      if (statusValue.isMatched) {
-                        statusCallback(DeploymentStatus.Matched, {
-                          jobIds: jobIds.map((id) => id.toJSON()),
-                        })
-                        return { id: jobIds[index], status: 'Matched' }
-                      } else if (statusValue.isAssigned) {
-                        statusCallback(DeploymentStatus.Acknowledged, {
-                          acknowledged: statusValue.asAssigned.toNumber(),
-                        })
-                        unsubStoredJobStatus()
-                        return {
-                          id: jobIds[index],
-                          status: JSON.stringify({
-                            assigned: statusValue.asAssigned.toNumber(),
-                          }),
-                        }
-                      }
-                      return { id: jobIds[index], status: 'Open' }
-                    }
-                    return undefined
-                  })
-                  .filter((value) => value !== undefined)
-              },
-            )
-          }
+    const onResult = async ({ status, events, dispatchError }: any): Promise<void> => {
+      const jobRegistrationEvents = events.filter((event: any) => {
+        return event.event.section === 'acurast' && event.event.method === 'JobRegistrationStoredV2'
+      })
+      const jobIds = jobRegistrationEvents.map((jobRegistrationEvent: any) => {
+        return jobRegistrationEvent.event.data[0]
+      })
 
-          if (status.isInBlock || status.isFinalized) {
-            unsub()
-          }
-
-          if (dispatchError) {
-            if (dispatchError.isModule) {
-              const decoded = api.registry.findMetaError(dispatchError.asModule)
-              const { docs, name, section } = decoded
-
-              reject(
-                new DeploymentError(`${docs.join(' ')}`, `${section}.${name}`, {
-                  section,
-                  name,
-                  docs,
-                }),
-              )
-            } else {
-              const error = dispatchError.toHuman() || dispatchError.toString()
-              reject(
-                new DeploymentError(error, 'TransactionError', {
-                  originalError: error,
-                }),
-              )
-            }
-          } else if (status.isInBlock) {
-            resolve(txHash.toHex())
-          }
+      if (jobIds.length > 0 && !jobStatusSubscribed) {
+        jobStatusSubscribed = true
+        statusCallback(DeploymentStatus.WaitingForMatch, {
+          jobIds: jobIds.map((jobId: any) => jobId.toJSON()),
         })
+        const unsubStoredJobStatus = await api.query.acurastMarketplace.storedJobStatus.multi(
+          jobIds,
+          (statuses) => {
+            const stat = api.registry.createType(
+              'Vec<Option<PalletAcurastMarketplaceJobStatus>>',
+              statuses,
+            )
+            stat
+              .map((value, index) => {
+                if (value.isSome) {
+                  const statusValue = value.unwrap() as any
+                  if (statusValue.isMatched) {
+                    statusCallback(DeploymentStatus.Matched, {
+                      jobIds: jobIds.map((id: any) => id.toJSON()),
+                    })
+                    return { id: jobIds[index], status: 'Matched' }
+                  } else if (statusValue.isAssigned) {
+                    statusCallback(DeploymentStatus.Acknowledged, {
+                      acknowledged: statusValue.asAssigned.toNumber(),
+                    })
+                    unsubStoredJobStatus()
+                    return {
+                      id: jobIds[index],
+                      status: JSON.stringify({
+                        assigned: statusValue.asAssigned.toNumber(),
+                      }),
+                    }
+                  }
+                  return { id: jobIds[index], status: 'Open' }
+                }
+                return undefined
+              })
+              .filter((value) => value !== undefined)
+          },
+        )
+      }
+
+      if (dispatchError) {
+        if (dispatchError.isModule) {
+          const decoded = api.registry.findMetaError(dispatchError.asModule)
+          const { docs, name, section } = decoded
+          capturedError = new DeploymentError(`${docs.join(' ')}`, `${section}.${name}`, {
+            section,
+            name,
+            docs,
+          })
+        } else {
+          const error = dispatchError.toHuman() || dispatchError.toString()
+          capturedError = new DeploymentError(error, 'TransactionError', {
+            originalError: error,
+          })
+        }
+      }
+    }
+
+    const call = api.tx['acurastMarketplace']['deploy'](
+      jobRegistration,
+      mutability,
+      reuseKeysFrom,
+      minMetrics,
+    )
+    const queue = registerOptions?.queue ?? getDefaultQueue(api, injector)
+
+    try {
+      const txHash = await queue.enqueue(call, { onResult })
+      resolve(txHash.toHex())
     } catch (e) {
       reject(
-        new DeploymentError(
-          e instanceof Error ? e.message : 'Unknown error during job deployment',
-          'DeploymentError',
-          { originalError: e },
-        ),
+        capturedError ??
+          new DeploymentError(
+            e instanceof Error ? e.message : 'Unknown error during job deployment',
+            'DeploymentError',
+            { originalError: e },
+          ),
       )
     }
   })

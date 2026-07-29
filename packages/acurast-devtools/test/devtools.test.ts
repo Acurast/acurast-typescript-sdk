@@ -1,11 +1,14 @@
 import AdmZip from 'adm-zip'
 import { mkdtempSync, rmSync } from 'fs'
-import { join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
+import { fileURLToPath } from 'url'
 import { tmpdir } from 'os'
 import { injectDevtoolsSnippet } from '../src/inject-devtools-snippet.js'
 
-// Point to the compiled snippet in dist/ (built by `pnpm build`).
-const SNIPPET_DIR = resolve(__dirname, '..', 'dist')
+// The package is ESM, so __dirname does not exist — derive it from import.meta.
+const testDir = dirname(fileURLToPath(import.meta.url))
+// Point to the compiled snippet in dist/ (built by `npm run build`).
+const SNIPPET_DIR = resolve(testDir, '..', 'dist')
 
 describe('devtools snippet injection', () => {
   let tempDir: string

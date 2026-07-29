@@ -12,7 +12,10 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "isolatedModules": true
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

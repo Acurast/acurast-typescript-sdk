@@ -3,6 +3,23 @@
 All notable changes to `@acurast/vps` are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1-beta.0]
+
+### Fixed
+
+- Tunnel establishment now retries on any `tunnel_start` RPC failure with
+  exponential backoff (5 attempts, 3s → 6s → 12s → 24s), calling `tunnel_stop`
+  between attempts to reset half-open state on the processor. Establishment can
+  fail transiently (e.g. a `java.io.EOFException` when the relay dial or TLS
+  handshake is dropped); retrying any error — rather than matching on the
+  message — also covers new transient failure modes.
+
+### Changed
+
+- Re-pinned the tunnel bundle; `TUNNEL_SCRIPT_IPFS` now points at
+  `ipfs://QmUL7cDUZ6Pk4GWGWuxrQs9vmA7g7bKnKQBVyNNmR6pUyS` (carries the retry
+  logic above).
+
 ## [0.2.0]
 
 ### Changed

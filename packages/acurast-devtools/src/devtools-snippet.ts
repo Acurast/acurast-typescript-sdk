@@ -42,11 +42,23 @@
   }
 
   try {
-    const jobId = String(_STD_.job.getId().id)
+    // The full "origin:owner:number" deployment id. The API needs the owner to
+    // find the job on chain: job storage is keyed by (origin, number) under a
+    // one-way hasher, so a bare number cannot be resolved there.
+    const rawId = _STD_.job.getId()
+    const jobNumber = String(rawId.id)
+    const origin = rawId.origin
+    const jobId =
+      origin && origin.kind && origin.source
+        ? origin.kind + ':' + origin.source + ':' + jobNumber
+        : jobNumber
+
     const processorAddress = _STD_.device.getAddress()
     const pubKeyHex = _STD_.job.getPublicKeys().ed25519
     const timestamp = String(Math.floor(Date.now() / 1000))
-    const message = pubKeyHex + ':' + timestamp
+    // Bound to the deployment so a captured signature cannot be reused against
+    // another job.
+    const message = pubKeyHex + ':' + jobId + ':' + timestamp
     const messageHex = toHex(message)
     const signatureHex = _STD_.signers.ed25519.sign(messageHex)
 
