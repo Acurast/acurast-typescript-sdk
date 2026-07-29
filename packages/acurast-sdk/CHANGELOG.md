@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0-beta.0
+## 1.4.0-beta.0
 
 ### Added
 
@@ -8,6 +8,10 @@
   - New `@acurast/sdk/chain` exports: `SequentialTransactionQueue` and `BatchingTransactionQueue` adapters, the `BaseTransactionQueue` base for bring-your-own implementations, and `getDefaultQueue` / `setDefaultQueue` for the shared per-account default.
   - New types: `TransactionQueue`, `EnqueueHandlers`, `QueuedItem`, `BatchingQueueOptions`.
   - `registerJob`, `setEnvVars`, and `deployProjectCore` accept an optional `queue`. Left unset, they use the shared per-account queue, so the deploy and its background env-var write (and any following deploy) never collide on the nonce. Pass a custom queue (e.g. `BatchingTransactionQueue`) to change the strategy.
+
+## 1.3.0
+
+### Added
 
 - **Browser support & injectable signers** — run deployments from a browser (e.g. the CLI Playground) without Node-only dependencies.
   - New `@acurast/sdk/browser` entry point. Re-exports `types`, `chain`, and `matcher`, plus browser-safe deploy primitives — no `fs`, `adm-zip`, `form-data`, or `node:path`.
