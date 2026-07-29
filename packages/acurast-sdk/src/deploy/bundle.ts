@@ -45,11 +45,13 @@ export const zipFolder = async (
   const zipPath = `${outputFolder}/${deploymentName}.zip`
   logger.debug(`zipPath: ${zipPath}`)
 
-  zip.writeZip(zipPath, (error) => {
-    if (error != null) {
-      logger.error(`Error writing zip file: ${error.name} ${error.message}`)
-    }
-  })
+  // Write synchronously. The callback form of writeZip is asynchronous, and
+  // this function returned before it finished — callers that then read or
+  // transform the zip (e.g. injecting the devtools snippet) raced the write,
+  // and since the path is reused across deploys they operated on stale content
+  // that the pending write then overwrote. The synchronous form guarantees the
+  // file is complete before we return, and throws on error rather than logging.
+  zip.writeZip(zipPath)
 
   return { zipPath }
 }

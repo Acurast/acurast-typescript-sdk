@@ -4,14 +4,18 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Resolve the directory that ships alongside this module at build time.
- * Implemented via `new Function(...)` so that ts-jest (which transpiles to
- * CommonJS for tests) does not trip on `import.meta.url` at parse time.
+ * Resolve the directory this compiled module ships in, so the bundled
+ * devtools-snippet.js next to it can be read.
+ *
+ * Uses `import.meta.url` directly. The package is ESM (`"type": "module"`,
+ * import-only exports), so this is valid at runtime. A previous version wrapped
+ * it in `new Function('return import.meta.url')` to avoid a ts-jest CJS parse
+ * error, but that evaluates the body in non-module scope where `import.meta` is
+ * a syntax error — throwing "Cannot use 'import.meta' outside a module" on
+ * every real call and silently shipping deployments with no snippet injected.
  */
 function selfDir(): string {
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const getUrl = new Function('return import.meta.url') as () => string
-  return dirname(fileURLToPath(getUrl()))
+  return dirname(fileURLToPath(import.meta.url))
 }
 
 /**
