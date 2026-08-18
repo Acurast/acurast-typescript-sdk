@@ -27,6 +27,17 @@ test:
   tags:
     - docker
 
+format:
+  stage: test
+  before_script:
+    - docker rm -f format-$CI_COMMIT_SHA || true
+  script:
+    - docker run --name format-$CI_COMMIT_SHA $GOOGLE_TAG /bin/bash -c "yarn format:check"
+  after_script:
+    - docker rm -f format-$CI_COMMIT_SHA || true
+  tags:
+    - docker
+
 publish_beta:
   stage: publish
   when: manual
