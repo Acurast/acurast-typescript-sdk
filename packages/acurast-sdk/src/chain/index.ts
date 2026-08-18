@@ -27,6 +27,9 @@ export {
   DEFAULT_PROCESSOR_REPUTATION,
   DEFAULT_TIME_BETWEEN_EXECUTIONS_MS,
   DEFAULT_START_DELAY,
+  MIN_EXECUTION_DURATION_MS,
+  MAX_START_TIME_FROM_NOW_MS,
+  getScheduleDurationMs,
   isStartAtMsFromNow,
   isStartAtTimestamp,
 } from './config-to-job.js'
