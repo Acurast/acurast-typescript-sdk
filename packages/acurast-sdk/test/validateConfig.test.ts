@@ -432,8 +432,7 @@ describe('validateConfig', () => {
   // })
 
   describe('runtime schedule limits', () => {
-    const baseProject = () =>
-      structuredClone(simpleExample.projects['acurast-example-app-fetch'])
+    const baseProject = () => structuredClone(simpleExample.projects['acurast-example-app-fetch'])
 
     test('should accept a onetime execution of exactly 1 minute', () => {
       const project = baseProject()

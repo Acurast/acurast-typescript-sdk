@@ -34,9 +34,7 @@ export const MAX_START_TIME_FROM_NOW_MS = day
  * derived from the interval, leaving `DEFAULT_TIME_BETWEEN_EXECUTIONS_MS`
  * between executions.
  */
-export const getScheduleDurationMs = (
-  execution: AcurastProjectConfig['execution'],
-): number =>
+export const getScheduleDurationMs = (execution: AcurastProjectConfig['execution']): number =>
   execution.type === 'onetime'
     ? (execution.maxExecutionTimeInMs ?? DEFAULT_DURATION_MS)
     : (execution.maxExecutionTimeInMs ??
