@@ -13,7 +13,7 @@ export const minute = 60 * second
 export const hour = 60 * minute
 export const day = 24 * hour
 
-export const DEFAULT_DURATION_MS = 10_000
+export const DEFAULT_DURATION_MS = minute
 export const DEFAULT_REPLICAS = 1
 export const DEFAULT_REWARD = 100_000_000_000
 export const DEFAULT_MAX_ALLOWED_START_DELAY_MS = 10_000
@@ -22,6 +22,25 @@ export const DEFAULT_PROCESSOR_REPUTATION = 0
 export const DEFAULT_TIME_BETWEEN_EXECUTIONS_MS = 10 * second
 
 export const DEFAULT_START_DELAY = 5 * minute
+
+/** Minimum on-chain schedule duration enforced by the Acurast runtime. */
+export const MIN_EXECUTION_DURATION_MS = minute
+/** Maximum allowed delay between job registration and its start time, enforced by the Acurast runtime. */
+export const MAX_START_TIME_FROM_NOW_MS = day
+
+/**
+ * The per-execution duration that ends up as `schedule.duration` on chain:
+ * for interval executions without an explicit `maxExecutionTimeInMs` it is
+ * derived from the interval, leaving `DEFAULT_TIME_BETWEEN_EXECUTIONS_MS`
+ * between executions.
+ */
+export const getScheduleDurationMs = (
+  execution: AcurastProjectConfig['execution'],
+): number =>
+  execution.type === 'onetime'
+    ? (execution.maxExecutionTimeInMs ?? DEFAULT_DURATION_MS)
+    : (execution.maxExecutionTimeInMs ??
+      execution.intervalInMs - DEFAULT_TIME_BETWEEN_EXECUTIONS_MS - 1)
 
 export function isStartAtMsFromNow(
   startAt: { msFromNow: number } | { timestamp: string | number },
@@ -115,15 +134,13 @@ export const convertConfigToJob = (config: AcurastProjectConfig): JobRegistratio
   let interval: number | undefined
 
   if (config.execution.type === 'onetime') {
-    duration = config.execution.maxExecutionTimeInMs ?? DEFAULT_DURATION_MS
+    duration = getScheduleDurationMs(config.execution)
     endTime = startTime + duration + 1
     interval = endTime - startTime
   } else if (config.execution.type === 'interval') {
     interval = config.execution.intervalInMs
     endTime = startTime + config.execution.intervalInMs * config.execution.numberOfExecutions + 1
-    duration =
-      config.execution.maxExecutionTimeInMs ??
-      config.execution.intervalInMs - DEFAULT_TIME_BETWEEN_EXECUTIONS_MS - 1
+    duration = getScheduleDurationMs(config.execution)
 
     if (duration < 0) {
       throw new Error('Duration is less than 0')

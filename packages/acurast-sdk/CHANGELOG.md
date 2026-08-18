@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.0
+
+### Added
+
+- **Config validation for runtime schedule limits** — limits the Acurast runtime enforces on chain are now caught at validation time with actionable messages instead of failing on submission:
+  - Each execution must run for at least 1 minute (`MIN_EXECUTION_DURATION_MS`). For interval executions without an explicit `maxExecutionTimeInMs`, the derived duration (`intervalInMs` minus the gap between executions) is checked and the error explains how to fix it.
+  - Deployments cannot be scheduled to start more than 24 hours in the future (`MAX_START_TIME_FROM_NOW_MS`), for both `startAt.msFromNow` and `startAt.timestamp`.
+- New `@acurast/sdk/chain` exports: `MIN_EXECUTION_DURATION_MS`, `MAX_START_TIME_FROM_NOW_MS`, and `getScheduleDurationMs` (the per-execution duration that ends up as `schedule.duration` on chain).
+
+### Changed
+
+- `DEFAULT_DURATION_MS` raised from 10 seconds to 1 minute, matching the runtime's minimum execution duration.
+
 ## 1.4.0
 
 ### Added

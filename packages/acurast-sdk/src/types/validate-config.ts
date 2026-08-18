@@ -8,6 +8,14 @@ import {
   ScriptMutability,
   MultiOrigin,
 } from './project.js'
+import {
+  getScheduleDurationMs,
+  isStartAtMsFromNow,
+  isStartAtTimestamp,
+  MIN_EXECUTION_DURATION_MS,
+  MAX_START_TIME_FROM_NOW_MS,
+  DEFAULT_TIME_BETWEEN_EXECUTIONS_MS,
+} from '../chain/config-to-job.js'
 
 const isAcurastAddress = (val: string) => {
   // TODO: Add address validation
@@ -163,6 +171,41 @@ export const acurastProjectConfigSchema = z
       path: ['assignmentStrategy', 'instantMatch'],
     },
   )
+  .superRefine((data, context) => {
+    // Limits enforced by the Acurast runtime; catching them here gives a
+    // clear message before the job is submitted and rejected on chain.
+    const durationMs = getScheduleDurationMs(data.execution)
+    if (durationMs < MIN_EXECUTION_DURATION_MS) {
+      const hint =
+        data.execution.type === 'interval' && data.execution.maxExecutionTimeInMs === undefined
+          ? `Without "execution.maxExecutionTimeInMs", the duration is derived from "execution.intervalInMs" (interval minus ${DEFAULT_TIME_BETWEEN_EXECUTIONS_MS + 1}ms). Set "execution.maxExecutionTimeInMs" to at least ${MIN_EXECUTION_DURATION_MS} or increase "execution.intervalInMs" to at least ${MIN_EXECUTION_DURATION_MS + DEFAULT_TIME_BETWEEN_EXECUTIONS_MS + 1}.`
+          : `Set "execution.maxExecutionTimeInMs" to at least ${MIN_EXECUTION_DURATION_MS} (1 minute).`
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Each execution must run for at least 1 minute, but the configured duration is ${durationMs}ms. ${hint}`,
+        path: ['execution', 'maxExecutionTimeInMs'],
+      })
+    }
+
+    if (data.startAt) {
+      let startsInMs: number | undefined
+      let startAtPath: string | undefined
+      if (isStartAtMsFromNow(data.startAt)) {
+        startsInMs = data.startAt.msFromNow
+        startAtPath = 'msFromNow'
+      } else if (isStartAtTimestamp(data.startAt)) {
+        startsInMs = new Date(data.startAt.timestamp).getTime() - Date.now()
+        startAtPath = 'timestamp'
+      }
+      if (startsInMs !== undefined && startsInMs > MAX_START_TIME_FROM_NOW_MS) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Deployments cannot be scheduled to start more than 24 hours in the future, but "startAt" is ${Math.round(startsInMs / 3_600_000)} hours from now. Choose a start time within the next 24 hours.`,
+          path: ['startAt', startAtPath!],
+        })
+      }
+    }
+  })
 
 const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefine(
   (data, context) => {

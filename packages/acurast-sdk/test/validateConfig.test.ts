@@ -13,7 +13,7 @@ const simpleExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -46,7 +46,7 @@ const processorVersionAndRuntimeExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -77,7 +77,7 @@ const mutabilityAndReuseKeysExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -113,7 +113,7 @@ const mutableWithValidVersionsExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -148,7 +148,7 @@ const mutableWithoutVersionsExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -179,7 +179,7 @@ const mutableWithInvalidAndroidVersionExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -214,7 +214,7 @@ const mutableWithInvalidIOSVersionExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -249,7 +249,7 @@ const mutableWithValidAndroidOnlyExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -283,7 +283,7 @@ const mutableWithValidIOSOnlyExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -317,7 +317,7 @@ const mutableWithInvalidVersionsExample = {
       },
       execution: {
         type: 'onetime',
-        maxExecutionTimeInMs: 30000,
+        maxExecutionTimeInMs: 60000,
       },
       maxAllowedStartDelayInMs: 10000,
       usageLimit: {
@@ -430,6 +430,93 @@ describe('validateConfig', () => {
   //     },
   //   ])
   // })
+
+  describe('runtime schedule limits', () => {
+    const baseProject = () =>
+      structuredClone(simpleExample.projects['acurast-example-app-fetch'])
+
+    test('should accept a onetime execution of exactly 1 minute', () => {
+      const project = baseProject()
+      project.execution = { type: 'onetime', maxExecutionTimeInMs: 60_000 } as any
+      expect(validateConfig(project).success).toEqual(true)
+    })
+
+    test('should reject a onetime execution below 1 minute', () => {
+      const project = baseProject()
+      project.execution = { type: 'onetime', maxExecutionTimeInMs: 59_999 } as any
+      const result = validateConfig(project)
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(JSON.stringify(result.error)).toContain('at least 1 minute')
+      }
+    })
+
+    test('should reject an interval execution with explicit duration below 1 minute', () => {
+      const project = baseProject()
+      project.execution = {
+        type: 'interval',
+        intervalInMs: 120_000,
+        numberOfExecutions: 2,
+        maxExecutionTimeInMs: 30_000,
+      } as any
+      const result = validateConfig(project)
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(JSON.stringify(result.error)).toContain('at least 1 minute')
+      }
+    })
+
+    test('should accept an interval execution whose derived duration is exactly 1 minute', () => {
+      // duration defaults to intervalInMs - 10_000 - 1
+      const project = baseProject()
+      project.execution = {
+        type: 'interval',
+        intervalInMs: 70_001,
+        numberOfExecutions: 2,
+      } as any
+      expect(validateConfig(project).success).toEqual(true)
+    })
+
+    test('should reject an interval execution whose derived duration is below 1 minute', () => {
+      const project = baseProject()
+      project.execution = {
+        type: 'interval',
+        intervalInMs: 70_000,
+        numberOfExecutions: 2,
+      } as any
+      const result = validateConfig(project)
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(JSON.stringify(result.error)).toContain('intervalInMs')
+      }
+    })
+
+    test('should accept a start time exactly 24 hours from now', () => {
+      const project = baseProject()
+      ;(project as any).startAt = { msFromNow: 24 * 60 * 60 * 1000 }
+      expect(validateConfig(project).success).toEqual(true)
+    })
+
+    test('should reject a start time more than 24 hours from now (msFromNow)', () => {
+      const project = baseProject()
+      ;(project as any).startAt = { msFromNow: 24 * 60 * 60 * 1000 + 1 }
+      const result = validateConfig(project)
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(JSON.stringify(result.error)).toContain('more than 24 hours')
+      }
+    })
+
+    test('should reject a start time more than 24 hours from now (timestamp)', () => {
+      const project = baseProject()
+      ;(project as any).startAt = { timestamp: Date.now() + 25 * 60 * 60 * 1000 }
+      const result = validateConfig(project)
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(JSON.stringify(result.error)).toContain('more than 24 hours')
+      }
+    })
+  })
 
   test('should throw an error when the project name is missing', () => {
     const project = simpleExample.projects['acurast-example-app-fetch']
