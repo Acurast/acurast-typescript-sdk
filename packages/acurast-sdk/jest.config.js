@@ -9,7 +9,9 @@ export default {
     },
   },
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
+    // `types` is set explicitly because the hoisted @types/jest in the
+    // workspace root is not auto-discovered from this package.
+    '^.+\\.tsx?$': ['ts-jest', { useESM: true, tsconfig: { types: ['jest', 'node'] } }],
   },
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
