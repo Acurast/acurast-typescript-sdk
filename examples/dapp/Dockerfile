@@ -1,24 +1,17 @@
-FROM node:18-alpine
+# Debian image like the root Dockerfile: @parcel/watcher (monorepo dependency) has no
+# prebuilt binary for Node 22 on Alpine/musl and fails to compile there.
+FROM node:22
 
 RUN npm install -g serve
 
 WORKDIR /sdk
 
-RUN mkdir -p ./packages/acurast-dapp
-RUN mkdir -p ./packages/acurast-transport-websocket
-
-COPY packages/acurast-dapp/package.json ./packages/acurast-dapp/package.json
-COPY packages/acurast-transport-websocket/package.json ./packages/acurast-transport-websocket/package.json
-
-COPY package.json .
-COPY yarn.lock .
-
-COPY lerna.json .
-
-RUN yarn install
-
+# Install and build the whole monorepo first: the example links the workspace
+# packages, and `lerna run build` builds all of them, so every workspace's
+# package.json has to be present at install time (copying only two of them
+# left the others without dependencies and the build failing).
 COPY . .
-
+RUN yarn install --frozen-lockfile
 RUN yarn build
 
 RUN mkdir -p ./examples/dapp
