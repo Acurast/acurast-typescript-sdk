@@ -12,6 +12,7 @@ export const createManifest = (
   entrypoint: string,
   restartPolicy: RestartPolicy,
   image?: { url: string; sha256: string },
+  resetExitCode?: number,
 ): string => {
   const manifest: Record<string, unknown> = {
     name,
@@ -21,6 +22,9 @@ export const createManifest = (
   }
   if (image != null) {
     manifest.image = image
+  }
+  if (resetExitCode != null) {
+    manifest.resetExitCode = resetExitCode
   }
   return JSON.stringify(manifest)
 }

@@ -108,6 +108,11 @@ export interface AcurastProjectConfig {
     ios?: string | number
   }
   restartPolicy?: RestartPolicy
+  // Exit code (1-125) with which the Shell entrypoint asks for its container to be reset
+  // (rootfs restored from the image, entrypoint rerun, execution keeps going). Written to
+  // the bundle's manifest.json. Not set by default. Ignored for other runtimes.
+  // Requires Android Processor 1.29.0+.
+  resetExitCode?: number
   runtime?: DeploymentRuntime
   mutability?: ScriptMutability
   reuseKeysFrom?: [MultiOrigin, string, number]
