@@ -35,7 +35,7 @@
     "eslint-plugin-n": "^15.0.0 || ^16.0.0 ",
     "eslint-plugin-promise": "^6.0.0",
     "husky": "^8.0.3",
-    "lerna": "^7.1.5",
+    "lerna": "~10.0.1",
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
     "prettier": "^3.0.2",
