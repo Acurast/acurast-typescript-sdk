@@ -30,7 +30,7 @@
     "devtools"
   ],
   "dependencies": {
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.1",
     "axios": "^1.9.0"
   },
   "peerDependencies": {
@@ -42,11 +42,10 @@
     "@polkadot/keyring": "^14.0.0",
     "@polkadot/util": "^14.0.0",
     "@polkadot/wasm-crypto": "^7.3.2",
-    "@types/adm-zip": "^0.5.7",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.14.0",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.4",
-    "typescript": "^5.4.5"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.19.2",
+    "jest": "~30.4.1",
+    "ts-jest": "^29.4.15",
+    "typescript": "^5.9.3"
   }
 }
