@@ -1,6 +1,11 @@
 import '@polkadot/api-augment'
 import { basename } from 'node:path'
-import { type AcurastProjectConfig, type JobRegistration, RestartPolicy } from '../types/project.js'
+import {
+  type AcurastProjectConfig,
+  type JobRegistration,
+  DeploymentRuntime,
+  RestartPolicy,
+} from '../types/project.js'
 import type { EnvVar } from '../types/env.js'
 import type { KeyStore } from '../chain/key-store.js'
 import type { AcurastSigner } from '../chain/signer.js'
@@ -96,6 +101,7 @@ export const deployProject = async (
         entrypoint,
         cfg.restartPolicy ?? RestartPolicy.OnFailure,
         cfg.image,
+        cfg.runtime === DeploymentRuntime.Shell ? cfg.resetExitCode : undefined,
       ),
       cfg.projectName,
       logger,

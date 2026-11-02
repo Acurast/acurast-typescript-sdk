@@ -22,6 +22,8 @@ export interface ZipProjectOptions {
   entrypoint: string
   restartPolicy?: RestartPolicy
   image?: { url: string; sha256: string }
+  /** Shell runtime only: exit code (1-125) that resets the container. */
+  resetExitCode?: number
 }
 
 /**
@@ -39,6 +41,7 @@ export const zipProjectBrowser = async (
     options.entrypoint,
     options.restartPolicy ?? RestartPolicy.OnFailure,
     options.image,
+    options.resetExitCode,
   )
   zip.file('manifest.json', manifest, { date: ZIP_DATE })
 

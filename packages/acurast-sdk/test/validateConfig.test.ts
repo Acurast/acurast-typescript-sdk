@@ -1,4 +1,4 @@
-import { RestartPolicy, MultiOrigin } from '../src/types/project.js'
+import { RestartPolicy, MultiOrigin, DeploymentRuntime } from '../src/types/project.js'
 import { validateConfig } from '../src/types/validate-config.js'
 
 const simpleExample = {
@@ -514,6 +514,67 @@ describe('validateConfig', () => {
       if (!result.success) {
         expect(JSON.stringify(result.error)).toContain('more than 24 hours')
       }
+    })
+  })
+
+  describe('resetExitCode', () => {
+    const shellProject = () => {
+      const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+      project.runtime = DeploymentRuntime.Shell
+      project.entrypoint = 'acurast.sh'
+      project.image = { url: 'https://example.com/distro.tar.xz', sha256: 'abc' }
+      return project
+    }
+
+    test('should be unset by default', () => {
+      const result = validateConfig(shellProject())
+      expect(result.success).toEqual(true)
+      if (result.success) {
+        expect(result.data.resetExitCode).toBeUndefined()
+      }
+    })
+
+    test('should accept integers between 1 and 125 for the Shell runtime without notes', () => {
+      for (const code of [1, 82, 125]) {
+        const project = shellProject()
+        project.resetExitCode = code
+        const result = validateConfig(project)
+        expect(result.success).toEqual(true)
+        if (result.success) {
+          expect(result.data.resetExitCode).toEqual(code)
+        }
+        expect(result.notes).toBeUndefined()
+      }
+    })
+
+    test('should reject values outside 1-125, non-integers and non-numbers', () => {
+      for (const code of [0, 126, -1, 1.5, '82', null, true]) {
+        const project = shellProject()
+        project.resetExitCode = code
+        const result = validateConfig(project)
+        expect(result.success).toEqual(false)
+        if (!result.success) {
+          expect(result.error.issues[0].path).toEqual(['resetExitCode'])
+          expect(result.error.issues[0].message).toEqual(
+            'resetExitCode must be an integer between 1 and 125',
+          )
+        }
+      }
+    })
+
+    test('should warn (not fail) when set for a non-Shell runtime', () => {
+      const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+      project.resetExitCode = 82
+      const result = validateConfig(project)
+      expect(result.success).toEqual(true)
+      expect(result.notes).toEqual([
+        {
+          code: 'custom',
+          message:
+            'Warning: resetExitCode only applies to the Shell runtime and is ignored for other runtimes.',
+          path: ['resetExitCode'],
+        },
+      ])
     })
   })
 
