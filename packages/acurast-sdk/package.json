@@ -56,7 +56,7 @@
     "sdk"
   ],
   "dependencies": {
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.1",
     "axios": "^1.9.0",
     "bignumber.js": "^9.3.0",
     "elliptic": "^6.6.1",
@@ -83,7 +83,6 @@
     "@polkadot/util": "^14.0.0",
     "@polkadot/util-crypto": "^14.0.0",
     "@polkadot/wasm-crypto": "^7.3.2",
-    "@types/adm-zip": "^0.5.7",
     "@types/elliptic": "^6.4.18",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.19.2",
