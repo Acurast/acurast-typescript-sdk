@@ -1,4 +1,8 @@
-import { type AcurastProjectConfig, type JobRegistration } from '../types/project.js'
+import {
+  type AcurastProjectConfig,
+  type JobRegistration,
+  DeploymentRuntime,
+} from '../types/project.js'
 import type { DeploymentStatus } from '../types/deployment-status.js'
 import type { EnvVar } from '../types/env.js'
 import type { KeyStore } from '../chain/key-store.js'
@@ -76,6 +80,7 @@ export const deployProjectBrowser = async (
         entrypoint,
         restartPolicy: cfg.restartPolicy,
         image: cfg.image,
+        resetExitCode: cfg.runtime === DeploymentRuntime.Shell ? cfg.resetExitCode : undefined,
       })
       return uploadBlob(blob, options.ipfs)
     })

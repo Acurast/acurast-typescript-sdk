@@ -134,6 +134,12 @@ export const acurastProjectConfigSchema = z
       ])
       .optional(),
     restartPolicy: z.nativeEnum(RestartPolicy).optional(),
+    resetExitCode: z
+      .number({ invalid_type_error: 'resetExitCode must be an integer between 1 and 125' })
+      .int('resetExitCode must be an integer between 1 and 125')
+      .min(1, 'resetExitCode must be an integer between 1 and 125')
+      .max(125, 'resetExitCode must be an integer between 1 and 125')
+      .optional(),
     runtime: z.nativeEnum(DeploymentRuntime).optional(),
     mutability: z.nativeEnum(ScriptMutability).optional(),
     reuseKeysFrom: z.tuple([z.nativeEnum(MultiOrigin), z.string(), z.number()]).optional(),
@@ -265,6 +271,15 @@ const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefi
         code: z.ZodIssueCode.custom,
         message: 'image is required when runtime is Shell',
         path: ['image'],
+      })
+    }
+
+    if (data.resetExitCode !== undefined && data.runtime !== DeploymentRuntime.Shell) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Warning: resetExitCode only applies to the Shell runtime and is ignored for other runtimes.',
+        path: ['resetExitCode'],
       })
     }
 

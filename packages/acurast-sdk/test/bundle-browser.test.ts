@@ -40,6 +40,30 @@ describe('zipProjectBrowser', () => {
     expect(manifest.image).toEqual({ url: 'docker://example', sha256: 'abc' })
   })
 
+  it('includes resetExitCode in the manifest when provided', async () => {
+    const blob = await zipProjectBrowser(files, {
+      projectName: 'shell-project',
+      entrypoint: 'acurast.sh',
+      restartPolicy: RestartPolicy.No,
+      image: { url: 'https://example.com/distro.tar.xz', sha256: 'abc' },
+      resetExitCode: 82,
+    })
+    const zip = await JSZip.loadAsync(await toBytes(blob))
+    const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
+    expect(manifest.resetExitCode).toBe(82)
+  })
+
+  it('omits resetExitCode from the manifest when not provided', async () => {
+    const blob = await zipProjectBrowser(files, {
+      projectName: 'shell-project',
+      entrypoint: 'acurast.sh',
+      image: { url: 'https://example.com/distro.tar.xz', sha256: 'abc' },
+    })
+    const zip = await JSZip.loadAsync(await toBytes(blob))
+    const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
+    expect('resetExitCode' in manifest).toBe(false)
+  })
+
   it('is deterministic: identical inputs produce byte-identical zips', async () => {
     const a = await toBytes(
       await zipProjectBrowser(files, { projectName: 'p', entrypoint: 'index.js' }),

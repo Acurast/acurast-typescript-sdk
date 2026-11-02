@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0
+
+### Added
+
+- **`resetExitCode`** — optional `AcurastProjectConfig` field (integer 1-125) for the Shell runtime. When the entrypoint exits with this code, the processor resets the container: stops all processes, restores the rootfs from the image and reruns the entrypoint, without ending the execution (Android Processor 1.29.0+). The value is validated and written to the bundle's `manifest.json` as `"resetExitCode"`; unset by default. Setting it for a non-Shell runtime yields a validation note and the field is ignored.
+- `createManifest` and `zipProjectBrowser` accept an optional `resetExitCode`.
+
 ## 1.5.0
 
 ### Added

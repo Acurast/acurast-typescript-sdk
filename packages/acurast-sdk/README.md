@@ -48,7 +48,7 @@ import {
   registerJob,
   jobAssignments,
   AcurastService,
-  setEnvVars
+  setEnvVars,
 } from '@acurast/sdk/chain'
 ```
 
@@ -80,7 +80,7 @@ import {
   suggestCostPerExecution,
   getFeeAnalysis,
   analyzePricing,
-  fetchPricingAdvice
+  fetchPricingAdvice,
 } from '@acurast/sdk/matcher'
 ```
 
@@ -96,12 +96,15 @@ Set `runtime` on `AcurastProjectConfig` to pick the execution environment:
 - `DeploymentRuntime.NodeJS` — Node.js, single-file deployment.
 - `DeploymentRuntime.Shell` — native binary inside a Linux distro image (PRoot-isolated). Requires `image: { url, sha256 }` on the config; the SDK auto-adds `RequiredModules.Shell` to `requiredModules` and embeds the image reference in `manifest.json`.
 
+Shell deployments can also set `resetExitCode` (integer 1-125): when the entrypoint exits with that code, the processor resets the container (rootfs restored from the image, entrypoint rerun, execution keeps going). The value is written to `manifest.json`; it is not set by default and ignored for other runtimes. Requires Android Processor 1.29.0+.
+
 ```ts
 import { DeploymentRuntime } from '@acurast/sdk/types'
 
 const config = {
   runtime: DeploymentRuntime.Shell,
   entrypoint: 'acurast.sh',
+  resetExitCode: 82,
   image: {
     url: 'https://github.com/termux/proot-distro/releases/download/v4.30.1/ubuntu-questing-aarch64-pd-v4.30.1.tar.xz',
     sha256: '5ab35b90cd9a9f180656261ba400a135c4c01c2da4b74522118342f985c2d328',
