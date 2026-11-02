@@ -41,8 +41,12 @@ format:
 publish_beta:
   stage: publish
   when: manual
+  before_script:
+    - docker rm -f publish-$CI_COMMIT_SHA || true
   script:
-    - docker run --env NPM_AUTH_TOKEN --name unit-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish-beta-only.sh
+    - docker run --rm --env NPM_AUTH_TOKEN --name publish-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish-beta-only.sh
+  after_script:
+    - docker rm -f publish-$CI_COMMIT_SHA || true
   tags:
     - docker
 
@@ -51,7 +55,11 @@ publish:
   only:
     - main
   when: manual
+  before_script:
+    - docker rm -f publish-$CI_COMMIT_SHA || true
   script:
-    - docker run --env NPM_AUTH_TOKEN --name unit-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish.sh
+    - docker run --rm --env NPM_AUTH_TOKEN --name publish-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish.sh
+  after_script:
+    - docker rm -f publish-$CI_COMMIT_SHA || true
   tags:
     - docker
