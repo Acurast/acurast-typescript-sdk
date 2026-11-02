@@ -1,5 +1,4 @@
-# Debian image like the root Dockerfile: @parcel/watcher (monorepo dependency) has no
-# prebuilt binary for current Node on Alpine/musl and fails to compile there.
+# Debian image like the root Dockerfile.
 FROM node:24
 
 RUN npm install -g serve

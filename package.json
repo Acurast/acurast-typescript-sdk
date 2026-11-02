@@ -49,5 +49,8 @@
     "hooks": {
       "pre-commit": "pretty-quick --staged"
     }
+  },
+  "resolutions": {
+    "@parcel/watcher": "^2.5.1"
   }
 }
