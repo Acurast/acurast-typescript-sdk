@@ -3,8 +3,6 @@ set -e
 
 echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > .npmrc
 
-git update-index --assume-unchanged npm-ci-publish.sh
-git update-index --assume-unchanged npm-ci-publish-beta-only.sh
 
 # Beta-only publish: publish ONLY packages whose own version is a prerelease,
 # always to the "next" dist-tag. Stable packages are left untouched (they go
