@@ -9,12 +9,22 @@ import type { KeyStore } from '../chain/key-store.js'
 import type { AcurastSigner } from '../chain/signer.js'
 import { type TransactionQueue, getDefaultQueue } from '../chain/tx-queue.js'
 import { NOOP_LOGGER, type Logger } from './logger.js'
+import { validateRpcEndpoint } from '../chain/rpc-endpoint.js'
 
 export interface DeployProjectCoreOptions {
   /** Wallet that signs the deploy extrinsic (mnemonic pair or injected signer). */
   wallet: AcurastSigner
-  /** WebSocket RPC endpoint for the target Acurast chain. */
+  /**
+   * WebSocket RPC endpoint for the target Acurast chain. Must be `wss://` (or
+   * `ws://` on a loopback host) unless `allowInsecureRpcEndpoint` is set. The
+   * env vars are encrypted to the processor keys this endpoint returns.
+   */
   rpcEndpoint: string
+  /**
+   * Allow a plaintext `ws://` RPC endpoint on a non-loopback host. Off by
+   * default; see `RpcEndpointOptions` in `@acurast/sdk/chain`.
+   */
+  allowInsecureRpcEndpoint?: boolean
   /** Environment variables to be encrypted + submitted after acknowledgement. */
   envVars?: EnvVar[]
   /** When true, resolve the script (bundle + upload) but skip the on-chain deploy. */
@@ -52,9 +62,15 @@ export const deployProjectCore = async (
   job: JobRegistration,
   options: DeployProjectCoreOptions,
 ): Promise<JobRegistration> => {
+  // Fail before any side effect (connection, IPFS upload, job registration):
+  // env vars are later encrypted to keys read from this endpoint.
+  const rpcEndpoint = validateRpcEndpoint(options.rpcEndpoint, {
+    allowInsecureRpcEndpoint: options.allowInsecureRpcEndpoint,
+  })
+
   const logger = options.logger ?? NOOP_LOGGER
 
-  const wsProvider = new WsProvider(options.rpcEndpoint)
+  const wsProvider = new WsProvider(rpcEndpoint)
   const api = await ApiPromise.create({
     provider: wsProvider,
     noInitWarn: true,
@@ -115,7 +131,8 @@ export const deployProjectCore = async (
             },
             {
               wallet: options.wallet,
-              rpcEndpoint: options.rpcEndpoint,
+              rpcEndpoint,
+              allowInsecureRpcEndpoint: options.allowInsecureRpcEndpoint,
               keyStore: options.keyStore,
               abortIfPastStartMs: job.schedule.startTime - 60_000,
               logger,

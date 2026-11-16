@@ -92,7 +92,15 @@ new AcurastService('ws://10.0.0.5:9944', { allowInsecureRpcEndpoint: true }) // 
 await setEnvVars(job, { wallet, rpcEndpoint: 'ws://10.0.0.5:9944', allowInsecureRpcEndpoint: true })
 ```
 
-`deployProject` and `deployProjectBrowser` submit env vars through `setEnvVars`, so with a plaintext non-loopback endpoint the env-var step fails (reported through `statusCallback` as `EnvironmentVariablesSet` with an `error`); use a `wss://` endpoint for deployments.
+`deployProject`, `deployProjectBrowser` and `deployProjectCore` apply the same check as their first step, before connecting, bundling, uploading to IPFS or registering the job, so a rejected endpoint fails the whole deploy without side effects. They accept the same `allowInsecureRpcEndpoint` option and pass it on to the env-var step:
+
+```typescript
+await deployProject(config, job, {
+  // ...
+  rpcEndpoint: 'ws://10.0.0.5:9944',
+  allowInsecureRpcEndpoint: true, // at your own risk
+})
+```
 
 ### `@acurast/sdk/ipfs`
 

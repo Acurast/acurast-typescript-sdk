@@ -20,8 +20,17 @@ const BUNDLE_FOLDER = '.acurast/bundles'
 export interface DeployProjectOptions {
   /** Wallet that signs the deploy extrinsic. */
   wallet: AcurastSigner
-  /** WebSocket RPC endpoint for the target Acurast chain. */
+  /**
+   * WebSocket RPC endpoint for the target Acurast chain. Must be `wss://` (or
+   * `ws://` on a loopback host) unless `allowInsecureRpcEndpoint` is set.
+   * Checked before anything is bundled, uploaded or registered.
+   */
   rpcEndpoint: string
+  /**
+   * Allow a plaintext `ws://` RPC endpoint on a non-loopback host. Off by
+   * default; see `RpcEndpointOptions` in `@acurast/sdk/chain`.
+   */
+  allowInsecureRpcEndpoint?: boolean
   /** IPFS pinning service configuration. */
   ipfs: IpfsUploadOptions
   /** Environment variables to be encrypted + submitted after acknowledgement. */
@@ -126,6 +135,7 @@ export const deployProject = async (
   return deployProjectCore(config, job, {
     wallet: options.wallet,
     rpcEndpoint: options.rpcEndpoint,
+    allowInsecureRpcEndpoint: options.allowInsecureRpcEndpoint,
     envVars: options.envVars,
     onlyUpload: options.onlyUpload,
     statusCallback: options.statusCallback,
