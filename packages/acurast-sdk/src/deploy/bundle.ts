@@ -1,5 +1,6 @@
 import AdmZip from 'adm-zip'
 import { existsSync, mkdirSync, statSync } from 'fs'
+import { isAbsolute, join, relative, resolve, sep } from 'path'
 import { NOOP_LOGGER, type Logger } from './logger.js'
 
 export { createManifest } from './manifest.js'
@@ -22,6 +23,32 @@ export interface ZipFolderOptions {
   exclude?: (relPath: string) => boolean
 }
 
+/**
+ * Builds `<outputFolder>/<deploymentName>.zip` and checks that it stays inside
+ * `outputFolder`. The deployment name usually comes from `acurast.json`, so a
+ * name like `../../x` must not be able to write a zip anywhere else.
+ */
+const bundlePath = (outputFolder: string, deploymentName: string): string => {
+  if (
+    typeof deploymentName !== 'string' ||
+    deploymentName === '' ||
+    deploymentName === '.' ||
+    deploymentName === '..' ||
+    /[\\/\0]/.test(deploymentName)
+  ) {
+    throw new Error(
+      'Invalid deployment name: it must be a single file name without path separators.',
+    )
+  }
+
+  const zipPath = join(outputFolder, `${deploymentName}.zip`)
+  const rel = relative(resolve(outputFolder), resolve(zipPath))
+  if (rel === '' || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error('Invalid deployment name: the bundle path escapes the output folder.')
+  }
+  return zipPath
+}
+
 export const checkIsFolder = async (path: string): Promise<boolean> => {
   const stats = statSync(path)
   return stats.isDirectory()
@@ -29,7 +56,9 @@ export const checkIsFolder = async (path: string): Promise<boolean> => {
 
 /**
  * Bundle `input` (a file or a folder) together with `manifest` into
- * `<outputFolder>/<deploymentName>.zip`.
+ * `<outputFolder>/<deploymentName>.zip`. `deploymentName` must be a single
+ * file name (no `/`, `\`, `.` or `..`); anything that would place the zip
+ * outside `outputFolder` is rejected.
  *
  * When `input` is a folder, dotfiles and dot-folders are excluded by default
  * (see {@link ZipFolderOptions}); a warning lists what was left out.
@@ -44,6 +73,8 @@ export const zipFolder = async (
   logger: Logger = NOOP_LOGGER,
   options: ZipFolderOptions = {},
 ): Promise<{ zipPath: string }> => {
+  const zipPath = bundlePath(outputFolder, deploymentName)
+
   if (!existsSync(input)) {
     throw new Error(`Input folder ${input} does not exist`)
   }
@@ -110,7 +141,6 @@ export const zipFolder = async (
     entry.header.time = CREATED_AT
   })
 
-  const zipPath = `${outputFolder}/${deploymentName}.zip`
   logger.debug(`zipPath: ${zipPath}`)
 
   // Write synchronously. The callback form of writeZip is asynchronous, and

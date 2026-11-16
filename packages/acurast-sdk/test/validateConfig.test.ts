@@ -578,6 +578,40 @@ describe('validateConfig', () => {
     })
   })
 
+  describe('projectName', () => {
+    const withName = (name: unknown) => {
+      const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+      project.projectName = name
+      return project
+    }
+
+    test.each(['acurast-example-app-fetch', 'a', 'My_App.v2', 'x'.repeat(64)])(
+      'should accept %p',
+      (name) => {
+        expect(validateConfig(withName(name)).success).toEqual(true)
+      },
+    )
+
+    test.each([
+      '../../escaped',
+      '..',
+      '.',
+      'a/b',
+      'a\\b',
+      '/abs',
+      '',
+      'has space',
+      'nul\0byte',
+      'x'.repeat(65),
+    ])('should reject %p', (name) => {
+      const result = validateConfig(withName(name))
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toEqual(['projectName'])
+      }
+    })
+  })
+
   test('should throw an error when the project name is missing', () => {
     const project = simpleExample.projects['acurast-example-app-fetch']
     delete (project as any).projectName

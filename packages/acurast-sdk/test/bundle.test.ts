@@ -134,6 +134,25 @@ describe('zipFolder', () => {
     expect(warnings).toHaveLength(0)
   })
 
+  it.each(['../../escaped', '../escaped', '..', '.', 'a/b', 'a\\b', '/abs/escaped', '', 'nul\0'])(
+    'rejects the deployment name %p without writing outside the output folder',
+    async (name) => {
+      await expect(zipFolder(input, out, MANIFEST, name)).rejects.toThrow('Invalid deployment name')
+      expect(fs.existsSync(path.join(tmp, 'escaped.zip'))).toBe(false)
+      expect(fs.existsSync(path.join(path.dirname(tmp), 'escaped.zip'))).toBe(false)
+      expect(fs.existsSync(path.join(out, 'a', 'b.zip'))).toBe(false)
+    },
+  )
+
+  it.each(['my-app.v2', '..double-dot-prefix'])(
+    'writes the zip inside the output folder for the plain name %p',
+    async (name) => {
+      const { zipPath } = await zipFolder(input, out, MANIFEST, name)
+      expect(path.dirname(path.resolve(zipPath))).toBe(path.resolve(out))
+      expect(path.basename(zipPath)).toBe(`${name}.zip`)
+    },
+  )
+
   it('stamps every entry with 1980-01-01 00:00:00 in DOS time', async () => {
     const { zipPath } = await zipFolder(input, out, MANIFEST, 'bundle')
     const DOS_1980_01_01 = ((1 << 5) | 1) << 16 // year 0, month 1, day 1; time 0

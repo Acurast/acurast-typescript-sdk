@@ -23,9 +23,20 @@ const isAcurastAddress = (val: string) => {
 }
 const isNotAcurastAddressMessage: string = 'Invalid Acurast address'
 
+/**
+ * Project names become the bundle file name (`<projectName>.zip`), so they are
+ * limited to characters that are safe in a single path segment.
+ */
+export const PROJECT_NAME_PATTERN = /^[A-Za-z0-9._-]{1,64}$/
+const projectNameMessage =
+  'projectName must be 1-64 characters of A-Z, a-z, 0-9, ".", "_" or "-", and not "." or ".."'
+
 export const acurastProjectConfigSchema = z
   .object({
-    projectName: z.string(),
+    projectName: z
+      .string()
+      .regex(PROJECT_NAME_PATTERN, projectNameMessage)
+      .refine((val) => val !== '.' && val !== '..', projectNameMessage),
     fileUrl: z.string(),
     entrypoint: z.string().optional(),
     image: z
