@@ -4,6 +4,11 @@
   "description": "Programmatic SDK for interacting with the Acurast Cloud.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Acurast/acurast-typescript-sdk.git",
+    "directory": "packages/acurast-sdk"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

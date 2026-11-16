@@ -4,6 +4,11 @@
   "description": "Acurast DevTools client and bundle snippet injection.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Acurast/acurast-typescript-sdk.git",
+    "directory": "packages/acurast-devtools"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

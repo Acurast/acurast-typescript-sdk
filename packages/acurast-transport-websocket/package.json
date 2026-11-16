@@ -4,6 +4,11 @@
   "deprecated": "This package is deprecated and no longer maintained.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Acurast/acurast-typescript-sdk.git",
+    "directory": "packages/acurast-transport-websocket"
+  },
   "types": "./dist/esm/index.d.ts",
   "exports": {
     "browser": "./dist/esm/index.browser.js",

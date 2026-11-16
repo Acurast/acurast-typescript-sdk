@@ -22,7 +22,14 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Deployment-branch rules and required reviewers on this environment are
+    # what actually restrict publishing: the guard step below lives in this
+    # file and can be removed on any branch.
     environment: npm-publish
+    permissions:
+      contents: read
+      # OIDC token for npm provenance and npm trusted publishing.
+      id-token: write
     steps:
       - name: Guard stable releases to main
         if: ${{ inputs.release_type == 'stable' && github.ref != 'refs/heads/main' }}
@@ -50,6 +57,7 @@ jobs:
       - name: Publish beta
         if: ${{ inputs.release_type == 'beta' }}
         env:
+          NPM_CONFIG_PROVENANCE: true
           NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
           chmod +x ./npm-ci-publish-beta-only.sh
@@ -58,6 +66,7 @@ jobs:
       - name: Publish stable
         if: ${{ inputs.release_type == 'stable' }}
         env:
+          NPM_CONFIG_PROVENANCE: true
           NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
           chmod +x ./npm-ci-publish.sh
