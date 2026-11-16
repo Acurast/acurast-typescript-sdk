@@ -80,11 +80,28 @@ export const getHumanReadableVersion = (version: Version | undefined): string =>
 export const DEVICE_VERSIONS_URL =
   'https://raw.githubusercontent.com/Acurast/acurast-processor-update/refs/heads/main/versions.json'
 
+/** Version strings as the processor app uses them, e.g. `1.13.0` or `1.9.1-rc6`. */
+const VERSION_STRING = /^\d{1,4}\.\d{1,4}\.\d{1,4}(?:-[0-9A-Za-z]{1,32})?$/
+
+const isNonNegativeIntegerKey = (key: string): boolean =>
+  /^\d{1,9}$/.test(key) && Number.isSafeInteger(Number(key))
+
 /**
  * Fetches the latest processor version table and merges it into
- * `deviceVersions`. Entries already present are overwritten. Call once at
- * startup if you need build-number → version strings newer than those
- * bundled with this SDK release.
+ * `deviceVersions`. Call once at startup if you need build-number → version
+ * strings newer than those bundled with this SDK release.
+ *
+ * The table is used to translate `minProcessorVersions` version strings into
+ * build numbers, so the merge only ever adds information:
+ * - entries bundled with the SDK (or added earlier) are never overwritten, and
+ *   new entries must have a higher build number than every known build of
+ *   that platform (build numbers only grow), so an old build cannot be given
+ *   a new version string;
+ * - an entry whose version string is already mapped to a different build
+ *   number on that platform is ignored, so a version string cannot be
+ *   redirected to another build;
+ * - platform and build keys must be non-negative integers and versions must
+ *   look like `1.2.3` or `1.2.3-rc1`; anything else is ignored.
  */
 export const fetchDeviceVersions = async (
   url: string = DEVICE_VERSIONS_URL,
@@ -95,16 +112,28 @@ export const fetchDeviceVersions = async (
       `Failed to fetch device versions from ${url}: ${response.status} ${response.statusText}`,
     )
   }
-  const json = (await response.json()) as Record<string, Record<string, string>>
+  const json: unknown = await response.json()
+  if (json == null || typeof json !== 'object' || Array.isArray(json)) {
+    throw new Error(`Failed to fetch device versions from ${url}: unexpected response format`)
+  }
   for (const [platformKey, builds] of Object.entries(json)) {
+    if (!isNonNegativeIntegerKey(platformKey)) continue
+    if (builds == null || typeof builds !== 'object' || Array.isArray(builds)) continue
     const platform = Number(platformKey)
     let platformMap = deviceVersions.get(platform)
     if (platformMap == null) {
       platformMap = new Map<buildNumber, string>()
       deviceVersions.set(platform, platformMap)
     }
-    for (const [buildKey, versionString] of Object.entries(builds)) {
-      platformMap.set(Number(buildKey), versionString)
+    const knownVersions = new Set(platformMap.values())
+    const highestKnownBuild = Math.max(-1, ...platformMap.keys())
+    for (const [buildKey, versionString] of Object.entries(builds as Record<string, unknown>)) {
+      if (!isNonNegativeIntegerKey(buildKey)) continue
+      if (typeof versionString !== 'string' || !VERSION_STRING.test(versionString)) continue
+      const build = Number(buildKey)
+      if (build <= highestKnownBuild || knownVersions.has(versionString)) continue
+      platformMap.set(build, versionString)
+      knownVersions.add(versionString)
     }
   }
   return deviceVersions

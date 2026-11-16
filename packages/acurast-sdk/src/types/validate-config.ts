@@ -1,3 +1,4 @@
+import { decodeAddress } from '@polkadot/util-crypto'
 import { z, type ZodIssue } from 'zod'
 import {
   AssignmentStrategyVariant,
@@ -17,11 +18,29 @@ import {
   DEFAULT_TIME_BETWEEN_EXECUTIONS_MS,
 } from '../chain/config-to-job.js'
 
-const isAcurastAddress = (val: string) => {
-  // TODO: Add address validation
-  return true
+/**
+ * True for an SS58 address with a valid checksum, or a 0x-prefixed 32-byte
+ * hex account id, that decodes to a 32-byte account id.
+ */
+const isAcurastAddress = (val: string): boolean => {
+  try {
+    return decodeAddress(val).length === 32
+  } catch {
+    return false
+  }
 }
 const isNotAcurastAddressMessage: string = 'Invalid Acurast address'
+
+/** Container images are fetched by the processor; only TLS URLs are accepted. */
+const isHttpsUrl = (val: string): boolean => {
+  try {
+    return new URL(val).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const SHA256_HEX = /^[0-9a-fA-F]{64}$/
 
 /**
  * Project names become the bundle file name (`<projectName>.zip`), so they are
@@ -41,8 +60,10 @@ export const acurastProjectConfigSchema = z
     entrypoint: z.string().optional(),
     image: z
       .object({
-        url: z.string(),
-        sha256: z.string(),
+        url: z.string().refine(isHttpsUrl, 'image.url must be an https:// URL'),
+        sha256: z
+          .string()
+          .regex(SHA256_HEX, 'image.sha256 must be a SHA-256 hash (64 hexadecimal characters)'),
       })
       .optional(),
     network: z.union([z.literal('mainnet'), z.literal('canary')]),
@@ -233,6 +254,14 @@ const acurastProjectConfigSchemaWithNotes = acurastProjectConfigSchema.superRefi
           'Note: onlyAttestedDevices is set to false. This means that the deployment will run on all devices, including unattested devices. This is not recommended for production deployments.',
         path: ['onlyAttestedDevices'],
       })
+      if ((data.includeEnvironmentVariables?.length ?? 0) > 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Warning: onlyAttestedDevices is set to false and includeEnvironmentVariables is not empty. The environment variables (typically secrets) will be decrypted on devices whose integrity is not attested. Set onlyAttestedDevices to true unless that is intended.',
+          path: ['includeEnvironmentVariables'],
+        })
+      }
     }
     if (data.startAt) {
       if ('msFromNow' in data.startAt) {

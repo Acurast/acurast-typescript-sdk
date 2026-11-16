@@ -1,6 +1,11 @@
 import { RestartPolicy, MultiOrigin, DeploymentRuntime } from '../src/types/project.js'
 import { validateConfig } from '../src/types/validate-config.js'
 
+const VALID_SHA256 = '5ab35b90cd9a9f180656261ba400a135c4c01c2da4b74522118342f985c2d328'
+// Well-known development accounts (Alice in SS58 generic format and as hex).
+const ALICE_SS58 = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
+const ALICE_HEX = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'
+
 const simpleExample = {
   projects: {
     'acurast-example-app-fetch': {
@@ -522,7 +527,7 @@ describe('validateConfig', () => {
       const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
       project.runtime = DeploymentRuntime.Shell
       project.entrypoint = 'acurast.sh'
-      project.image = { url: 'https://example.com/distro.tar.xz', sha256: 'abc' }
+      project.image = { url: 'https://example.com/distro.tar.xz', sha256: VALID_SHA256 }
       return project
     }
 
@@ -575,6 +580,103 @@ describe('validateConfig', () => {
           path: ['resetExitCode'],
         },
       ])
+    })
+  })
+
+  describe('addresses', () => {
+    const base = () => structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+
+    test.each([ALICE_SS58, ALICE_HEX])('should accept %p in processorWhitelist', (address) => {
+      const project = base()
+      project.processorWhitelist = [address]
+      expect(validateConfig(project).success).toEqual(true)
+    })
+
+    test.each([
+      'not-an-address',
+      '',
+      // Alice with the last character changed: bad checksum.
+      '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQZ',
+      // 31-byte hex account id.
+      '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2',
+    ])('should reject %p in processorWhitelist and instantMatch', (address) => {
+      const whitelisted = base()
+      whitelisted.processorWhitelist = [ALICE_SS58, address]
+      const result = validateConfig(whitelisted)
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toEqual(['processorWhitelist', 1])
+        expect(result.error.issues[0].message).toEqual('Invalid Acurast address')
+      }
+
+      const matched = base()
+      matched.numberOfReplicas = 1
+      matched.assignmentStrategy = {
+        type: 'Single',
+        instantMatch: [{ processor: address, maxAllowedStartDelayInMs: 10_000 }],
+      }
+      const matchedResult = validateConfig(matched)
+      expect(matchedResult.success).toEqual(false)
+      if (!matchedResult.success) {
+        expect(matchedResult.error.issues[0].path).toEqual([
+          'assignmentStrategy',
+          'instantMatch',
+          0,
+          'processor',
+        ])
+      }
+    })
+  })
+
+  describe('image', () => {
+    const withImage = (image: unknown) => {
+      const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+      project.image = image
+      return project
+    }
+
+    test('should accept an https URL with a 64-character hex hash', () => {
+      expect(
+        validateConfig(withImage({ url: 'https://example.com/d.tar.xz', sha256: VALID_SHA256 }))
+          .success,
+      ).toEqual(true)
+    })
+
+    test.each([
+      ['http://example.com/d.tar.xz', VALID_SHA256, 'url'],
+      ['ftp://example.com/d.tar.xz', VALID_SHA256, 'url'],
+      ['not a url', VALID_SHA256, 'url'],
+      ['https://example.com/d.tar.xz', '', 'sha256'],
+      ['https://example.com/d.tar.xz', 'abc', 'sha256'],
+      ['https://example.com/d.tar.xz', VALID_SHA256.slice(1), 'sha256'],
+      ['https://example.com/d.tar.xz', `${VALID_SHA256.slice(1)}g`, 'sha256'],
+    ])('should reject url %p with sha256 %p', (url, sha256, field) => {
+      const result = validateConfig(withImage({ url, sha256 }))
+      expect(result.success).toEqual(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toEqual(['image', field])
+      }
+    })
+  })
+
+  describe('onlyAttestedDevices', () => {
+    test('should warn when env vars go to unattested devices', () => {
+      const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+      project.onlyAttestedDevices = false
+      project.includeEnvironmentVariables = ['API_KEY']
+      const result = validateConfig(project)
+      expect(result.success).toEqual(true)
+      expect(result.notes?.map((n) => n.path)).toEqual([
+        ['onlyAttestedDevices'],
+        ['includeEnvironmentVariables'],
+      ])
+    })
+
+    test('should only add the general note without env vars', () => {
+      const project = structuredClone(simpleExample.projects['acurast-example-app-fetch']) as any
+      project.onlyAttestedDevices = false
+      const result = validateConfig(project)
+      expect(result.notes?.map((n) => n.path)).toEqual([['onlyAttestedDevices']])
     })
   })
 
