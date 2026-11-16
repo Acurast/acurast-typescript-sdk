@@ -1,15 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > .npmrc
-
+# shellcheck source=npm-ci-publish-lib.sh
+. "$(dirname "$0")/npm-ci-publish-lib.sh"
+npm_publish_setup_auth
 
 # Beta-only publish: publish ONLY packages whose own version is a prerelease,
 # always to the "next" dist-tag. Stable packages are left untouched (they go
 # out via npm-ci-publish.sh). Errors if there is no beta to publish.
 #
-# Versions already on the registry are skipped. prepublishOnly (build) runs via
-# `npm publish`.
+# Versions already on the registry are skipped. Lifecycle scripts do not run
+# on publish (--ignore-scripts); see npm-ci-publish-lib.sh.
 
 published=0
 for dir in packages/*/; do
@@ -33,16 +34,13 @@ for dir in packages/*/; do
   fi
 
   echo "publish $name@$version --tag next"
-  ( cd "$dir" && npm publish --tag next )
+  npm_publish_package "$dir" next
   published=$((published + 1))
 done
 
 if [ "$published" = "0" ]; then
   echo "cannot publish: no unpublished beta version found (beta-only script)"
-  rm .npmrc
   exit 1
 fi
 
 echo "published $published beta package(s)"
-
-rm .npmrc

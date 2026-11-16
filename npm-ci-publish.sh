@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > .npmrc
+# shellcheck source=npm-ci-publish-lib.sh
+. "$(dirname "$0")/npm-ci-publish-lib.sh"
+npm_publish_setup_auth
+
 # Publish each package with a dist-tag derived from ITS OWN version:
 #   prerelease version (e.g. 1.4.0-beta.0) -> next
 #   stable version      (e.g. 1.4.0)        -> latest
@@ -12,7 +15,8 @@ echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > .npmrc
 # per package removes that coupling.
 #
 # Versions already on the registry are skipped, mirroring `lerna publish
-# from-package`. prepublishOnly (build) still runs via `npm publish`.
+# from-package`. Lifecycle scripts do not run on publish
+# (--ignore-scripts), so packages must be built first; see npm-ci-publish-lib.sh.
 
 published=0
 for dir in packages/*/; do
@@ -39,10 +43,8 @@ for dir in packages/*/; do
   esac
 
   echo "publish $name@$version --tag $tag"
-  ( cd "$dir" && npm publish --tag "$tag" )
+  npm_publish_package "$dir" "$tag"
   published=$((published + 1))
 done
 
 echo "published $published package(s)"
-
-rm .npmrc
