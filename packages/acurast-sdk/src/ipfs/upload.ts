@@ -22,16 +22,14 @@ export const uploadScript = async (
   input: UploadScriptInput,
   options: IpfsUploadOptions,
 ): Promise<string> => {
-  const tempFile = 'temp_script.js'
-
-  if ('file' in input) {
-    fs.copyFileSync(input.file, tempFile)
-  } else {
-    fs.writeFileSync(tempFile, Buffer.from(input.script, 'utf-8'))
-  }
+  // Read the content into memory instead of staging it in a temp file: a
+  // fixed temp path is shared by concurrent calls, which then upload each
+  // other's content.
+  const content: Buffer =
+    'file' in input ? fs.readFileSync(input.file) : Buffer.from(input.script, 'utf-8')
 
   const form = new FormDataModule()
-  form.append('file', fs.createReadStream(tempFile), 'script.js')
+  form.append('file', content, 'script.js')
   form.append('pinataOptions', '{"cidVersion": 0}')
   form.append('pinataMetadata', '{"name": "script.js"}')
 
@@ -47,11 +45,8 @@ export const uploadScript = async (
       },
     )
 
-    fs.unlinkSync(tempFile)
-
     return `ipfs://${res.data.IpfsHash}`
   } catch (error) {
-    fs.unlinkSync(tempFile)
     throw error
   }
 }
