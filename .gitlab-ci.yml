@@ -49,13 +49,20 @@ verify_tunnel_cid:
   tags:
     - docker
 
+# Publish jobs only use the image built by this pipeline on this runner
+# (--pull=never): a missing image fails the job instead of pulling one from the
+# registry and handing it the npm token. NPM_AUTH_TOKEN must be a protected,
+# masked variable so unprotected branches never receive it.
 publish_beta:
   stage: publish
-  when: manual
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+      when: manual
+      allow_failure: true
   before_script:
     - docker rm -f publish-$CI_COMMIT_SHA || true
   script:
-    - docker run --rm --env NPM_AUTH_TOKEN --name publish-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish-beta-only.sh
+    - docker run --rm --pull=never --env NPM_AUTH_TOKEN --name publish-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish-beta-only.sh
   after_script:
     - docker rm -f publish-$CI_COMMIT_SHA || true
   tags:
@@ -69,7 +76,7 @@ publish:
   before_script:
     - docker rm -f publish-$CI_COMMIT_SHA || true
   script:
-    - docker run --rm --env NPM_AUTH_TOKEN --name publish-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish.sh
+    - docker run --rm --pull=never --env NPM_AUTH_TOKEN --name publish-$CI_COMMIT_SHA $GOOGLE_TAG ./npm-ci-publish.sh
   after_script:
     - docker rm -f publish-$CI_COMMIT_SHA || true
   tags:
