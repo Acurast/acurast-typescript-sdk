@@ -45,8 +45,10 @@ jobs:
           cache: yarn
           registry-url: https://registry.npmjs.org
 
+      # Dependency lifecycle scripts do not run in the job that gets the
+      # OIDC token and the npm secret.
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Build
         run: yarn build

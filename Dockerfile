@@ -13,8 +13,10 @@ COPY . /libs
 RUN chmod +x ./npm-ci-publish-beta-only.sh
 RUN chmod +x ./npm-ci-publish.sh
 
-# install dependencies
-RUN yarn install --frozen-lockfile
+# install dependencies without running their lifecycle scripts: this image is
+# also the one the publish jobs run in. No dependency needs an install script
+# for the build or the tests.
+RUN yarn install --frozen-lockfile --ignore-scripts
 
 # set to production
 RUN export NODE_ENV=production

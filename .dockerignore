@@ -2,3 +2,10 @@
 **/node_modules
 **/dist
 examples/dapp/build
+
+# Local credentials must never end up in an image layer. pin-tunnel.mjs reads
+# the pinning API key from a root .env, and npm auth lives in .npmrc.
+**/.env
+**/.env.*
+**/.npmrc
+**/*.tgz
