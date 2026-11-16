@@ -37,6 +37,24 @@ await deployProject({ config /* ... */ })
 
 Also exports `zipFolder`, `createManifest`, `checkIsFolder`, and a `Logger` interface with a `NOOP_LOGGER` default.
 
+#### What goes into the bundle
+
+When `fileUrl` is a folder, it is zipped and pinned **publicly** on IPFS, and the CID is written on chain. Anything in the bundle can be read by anyone and cannot be withdrawn. To avoid leaking secrets, files and folders whose name starts with `.` (`.env`, `.git/`, `.npmrc`, `.acurast/`, ...) are left out by default, at any depth. A warning lists what was excluded, and the bundled files are logged at debug level.
+
+Use the `bundle` option of `deployProject` (or the last argument of `zipFolder`) to change this:
+
+```typescript
+await deployProject(config, job, {
+  // ...
+  bundle: {
+    includeDotfiles: true, // opt back in to dotfiles (default: false)
+    exclude: (relPath) => relPath === 'node_modules' || relPath.endsWith('.map'),
+  },
+})
+```
+
+`exclude` is called with paths relative to the folder, using `/` and no trailing slash, for every file and folder and for each parent folder, so excluding a folder excludes everything in it. `node_modules` is bundled by default because the unbundled NodeJS and Shell runtimes may need it; exclude it there if your entrypoint is self-contained. Pointing `fileUrl` at a build output folder rather than the project root is still the safest setup.
+
 ### `@acurast/sdk/chain`
 
 Direct access to the Acurast chain: wallets, balances, job registration, assignments, environment variables, and app versions.

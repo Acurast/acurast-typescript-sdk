@@ -11,7 +11,7 @@ import type { KeyStore } from '../chain/key-store.js'
 import type { AcurastSigner } from '../chain/signer.js'
 import type { TransactionQueue } from '../chain/tx-queue.js'
 import { uploadScript, type IpfsUploadOptions } from '../ipfs/upload.js'
-import { zipFolder, createManifest, checkIsFolder } from './bundle.js'
+import { zipFolder, createManifest, checkIsFolder, type ZipFolderOptions } from './bundle.js'
 import { NOOP_LOGGER, type Logger } from './logger.js'
 import { deployProjectCore } from './deploy-core.js'
 
@@ -51,6 +51,12 @@ export interface DeployProjectOptions {
   transformBundle?: (opts: { zipPath: string; entrypoint: string }) => Promise<string>
   /** Override for the temp-bundle directory. Defaults to `.acurast/bundles`. */
   bundleFolder?: string
+  /**
+   * Controls which files of a local `fileUrl` folder are bundled. By default
+   * dotfiles and dot-folders (`.env`, `.git/`, `.acurast/`, ...) are excluded,
+   * because the bundle is pinned publicly on IPFS. See {@link ZipFolderOptions}.
+   */
+  bundle?: ZipFolderOptions
 }
 
 /**
@@ -105,6 +111,7 @@ export const deployProject = async (
       ),
       cfg.projectName,
       logger,
+      options.bundle,
     )
 
     if (options.transformBundle) {

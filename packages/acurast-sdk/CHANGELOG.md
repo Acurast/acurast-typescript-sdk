@@ -6,6 +6,11 @@
 
 - **`computeCidV0`** (`@acurast/sdk/ipfs`, `@acurast/sdk/browser`) computes the CIDv0 kubo assigns to a file with the default importer settings, plus the `isCidV0` / `isWellFormedCid` format checks.
 - `IpfsUploadOptions.verifyCid` (default `true`) to opt out of the CID comparison for pinning services with a different DAG layout.
+- `ZipFolderOptions` (`includeDotfiles`, `exclude`), accepted by `zipFolder` as an optional last argument and by `deployProject` as `options.bundle`.
+
+### Changed
+
+- **Behaviour change: dotfiles are no longer bundled.** When a folder is deployed, `zipFolder` now leaves out every file or folder whose name starts with `.` (`.env`, `.git/`, `.npmrc`, `.acurast/`, ...), because the bundle is pinned publicly on IPFS. It warns with the list of excluded paths. Projects that need dotfiles at runtime must set `includeDotfiles: true`. Single-file deployments are unaffected.
 
 ### Fixed
 
