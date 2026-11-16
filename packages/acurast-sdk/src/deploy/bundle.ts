@@ -54,8 +54,11 @@ export const zipFolder = async (
 
   // Fixed timestamp so that identical inputs produce byte-identical zips
   // (and therefore identical IPFS CIDs). Zip stores DOS timestamps whose
-  // epoch is 1980-01-01.
-  const CREATED_AT = new Date('1980-01-01T00:00:00.000Z')
+  // epoch is 1980-01-01. adm-zip derives the DOS date/time fields from the
+  // Date's *local* components, so build the Date from local components too:
+  // the stored fields are then 1980-01-01 00:00:00 in every timezone (the
+  // same bytes a UTC machine produced with the former UTC instant).
+  const CREATED_AT = new Date(1980, 0, 1, 0, 0, 0)
 
   zip.addFile('manifest.json', Buffer.from(manifest, 'utf8'))
 

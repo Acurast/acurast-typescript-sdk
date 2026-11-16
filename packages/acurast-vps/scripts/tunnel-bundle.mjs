@@ -29,16 +29,8 @@ export const readImage = () => {
   return { url: urlMatch[1], sha256: shaMatch[1] }
 }
 
-/**
- * Build the manifest + zip into `outDir`; returns the zip path and manifest.
- *
- * Runs in UTC: zipFolder stamps entries with 1980-01-01T00:00:00Z, but the
- * zip stores DOS date/time fields that adm-zip derives from the *local* time
- * of that instant, so the zip bytes (and the CID) otherwise depend on the
- * timezone of the machine. The pinned TUNNEL_SCRIPT_IPFS was built in UTC.
- */
+/** Build the manifest + zip into `outDir`; returns the zip path and manifest. */
 export const buildTunnelZip = async (outDir) => {
-  process.env.TZ = 'UTC'
   const manifest = createManifest(deploymentName, 'start.sh', 'OnFailure', readImage())
   const { zipPath } = await zipFolder(tunnelDir, outDir, manifest, deploymentName)
   return { zipPath, manifest }

@@ -16,6 +16,7 @@
 
 - `uploadScript` and `uploadBlob` no longer trust the CID returned by the pinning service: a missing or malformed CID (previously returned as `ipfs://undefined`) or a CID that does not match the uploaded bytes now throws.
 - `uploadScript` no longer stages the content in a fixed `temp_script.js` in the working directory, so concurrent uploads cannot receive each other's CID.
+- `zipFolder` output no longer depends on the machine's timezone: entries were stamped with a UTC instant that adm-zip converts to local DOS date/time, so the zip bytes (and the IPFS CID) differed per `TZ`. Bundles are now identical everywhere and match what a UTC machine produced before.
 
 ## 1.6.0
 

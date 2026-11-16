@@ -1,7 +1,10 @@
 import AdmZip from 'adm-zip'
+import { execFileSync } from 'child_process'
 import fs from 'fs'
+import { createRequire } from 'module'
 import os from 'os'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import { zipFolder } from '../src/deploy/bundle.js'
 import type { Logger } from '../src/deploy/logger.js'
 
@@ -130,4 +133,66 @@ describe('zipFolder', () => {
     expect(zipPath).toBe(`${out}/bundle.zip`)
     expect(warnings).toHaveLength(0)
   })
+
+  it('stamps every entry with 1980-01-01 00:00:00 in DOS time', async () => {
+    const { zipPath } = await zipFolder(input, out, MANIFEST, 'bundle')
+    const DOS_1980_01_01 = ((1 << 5) | 1) << 16 // year 0, month 1, day 1; time 0
+    for (const entry of new AdmZip(zipPath).getEntries()) {
+      expect(entry.header.timeval).toBe(DOS_1980_01_01)
+    }
+  })
+
+  // Node's process-wide timezone cannot be switched inside a Jest worker, so
+  // build the bundle in child processes with different TZ values. The child
+  // loads the TypeScript source via Node's type stripping plus a resolve hook
+  // that maps the `.js` import specifiers to the `.ts` files.
+  const hasRegisterHooks =
+    typeof (createRequire(__filename)('module') as any).registerHooks === 'function'
+  ;(hasRegisterHooks ? it : it.skip)(
+    'produces identical bytes regardless of the TZ environment variable',
+    () => {
+      const bundleUrl = pathToFileURL(path.join(__dirname, '../src/deploy/bundle.ts')).href
+      const childScript = `
+      import { registerHooks } from 'node:module'
+      registerHooks({
+        resolve(specifier, context, next) {
+          try {
+            return next(specifier, context)
+          } catch (err) {
+            if (specifier.startsWith('.') && specifier.endsWith('.js')) {
+              return next(specifier.slice(0, -3) + '.ts', context)
+            }
+            throw err
+          }
+        },
+      })
+      const [bundleUrl, input, out, manifest] = process.argv.slice(1)
+      const { zipFolder } = await import(bundleUrl)
+      await zipFolder(input, out, manifest, 'bundle')
+    `
+      const build = (tz: string): Buffer => {
+        const tzOut = path.join(tmp, `out-${tz.replace('/', '_')}`)
+        execFileSync(
+          process.execPath,
+          [
+            '--no-warnings',
+            '--input-type=module',
+            '-e',
+            childScript,
+            bundleUrl,
+            input,
+            tzOut,
+            MANIFEST,
+          ],
+          { env: { ...process.env, TZ: tz }, stdio: 'pipe' },
+        )
+        return fs.readFileSync(path.join(tzOut, 'bundle.zip'))
+      }
+
+      const utc = build('UTC')
+      expect(build('Asia/Tokyo').equals(utc)).toBe(true)
+      expect(build('America/Los_Angeles').equals(utc)).toBe(true)
+    },
+    30_000,
+  )
 })
