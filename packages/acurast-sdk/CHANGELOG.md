@@ -19,6 +19,7 @@
 
 ### Fixed
 
+- `setEnvVars` (via `JobEnvironmentService.setEnvironmentVariablesMulti`) now throws instead of submitting an empty `setEnvironments` extrinsic and reporting success when none of the assigned processors has a usable encryption key.
 - `uploadScript` no longer rethrows the raw `AxiosError` when the pinning request fails. That error kept the request config, so logging it (or `util.inspect` / `JSON.stringify` of it) exposed the `Authorization: Bearer <apiKey>` header. Both `uploadScript` and `uploadBlob` now reject with an `Error` (`name: 'IpfsUploadError'`) whose message holds the HTTP status, status text and a short, redacted excerpt of the response body (or the network error code), with a numeric `status` property when a response was received and no `cause`, config or request attached. The API key is removed from the excerpt if the service echoes it.
 - `uploadScript` and `uploadBlob` no longer trust the CID returned by the pinning service: a missing or malformed CID (previously returned as `ipfs://undefined`) or a CID that does not match the uploaded bytes now throws.
 - `uploadScript` no longer stages the content in a fixed `temp_script.js` in the working directory, so concurrent uploads cannot receive each other's CID.

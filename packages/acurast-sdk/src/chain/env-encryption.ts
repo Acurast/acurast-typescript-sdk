@@ -245,6 +245,14 @@ export class JobEnvironmentService {
       }
     }
 
+    // Submitting an empty setEnvironments extrinsic would report success while
+    // no processor receives the variables.
+    if (jobEnvironments.length === 0) {
+      throw new Error(
+        'No assigned processor has a usable encryption key; the environment variables were not submitted.',
+      )
+    }
+
     return this.setEnvironments(keyring, jobId, jobEnvironments)
   }
 
