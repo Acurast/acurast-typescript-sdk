@@ -12,7 +12,11 @@ export interface VpsKeypair {
 
 /** Parameters accepted in the `vps: {}` request body key */
 export interface VpsRequest {
-  /** SSH public key installed into dropbear's authorized_keys */
+  /**
+   * SSH public key installed into dropbear's authorized_keys: one OpenSSH
+   * public key line (`<type> <base64> [comment]`). Multi-line values and
+   * `authorized_keys` options are rejected.
+   */
   sshKey: string
   /** Image preset (default: 'ubuntu') */
   image?: VpsImageName
@@ -34,16 +38,19 @@ export interface VpsRequest {
   reward: number
   /** Target network (default: 'mainnet') */
   network?: 'mainnet' | 'canary'
-  /** Override tunnel script IPFS CID (mainly for testing) */
+  /** Override tunnel script IPFS CID (mainly for testing); must be `ipfs://Qm...` */
   scriptCid?: string
-  /** Optional webhook URL — receives `log`/`started`/`error` JSON events from the tunnel bundle. */
+  /**
+   * Optional webhook URL — receives `log`/`started`/`error` JSON events from
+   * the tunnel bundle. Must be `https://`.
+   */
   callbackUrl?: string
   /**
    * If set, install sslh in the bundle and expose an HTTP endpoint on the
    * same subdomain via protocol multiplexing. The processor's `<hash>.acu.run`
    * then serves both SSH (via the ProxyCommand recipe) and plain HTTP on this
    * port. Small (~200ms) connect-time delay for SSH; no effect on HTTP.
-   * Must be >= 1024 (proot sandbox constraint).
+   * Must be an integer in 1024-65535 (proot sandbox constraint).
    */
   httpPort?: number
   /**

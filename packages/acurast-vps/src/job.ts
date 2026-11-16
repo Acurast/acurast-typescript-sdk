@@ -8,6 +8,7 @@ import {
 import { generateTunnelKeypair, computeClientId } from './keypair.js'
 import { VPS_IMAGE_PRESETS } from './images.js'
 import type { VpsRequest, VpsDeploymentPlan } from './types.js'
+import { validateSshKey, validateVpsRequest } from './validate.js'
 
 /**
  * IPFS CID of the tunnel bundle shipped in `../tunnel/` (start.sh + tunnel.py +
@@ -29,6 +30,12 @@ export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmUL7cDUZ6Pk4GWGWuxrQs9vmA7g7bKnKQBVyN
  * 2. Constructs the Acurast JobRegistration for the Shell/tunnel runtime
  * 3. Returns env vars to inject after the job is matched
  *
+ * The request is validated first (see {@link validateVpsRequest}): `sshKey`
+ * must be a single-line OpenSSH public key of a supported type, `httpPort` an
+ * integer in 1024-65535, `callbackUrl` an `https://` URL, `scriptCid` an
+ * `ipfs://Qm...` CIDv0, and `network` / `image` known values. Invalid input
+ * throws before any key is generated.
+ *
  * Usage:
  *   const plan = buildVpsJob({ sshKey: '...', reward: 48_686_320_000, image: 'ubuntu' })
  *   const txHash = await registerJob(api, signer, plan.job, callback)
@@ -36,6 +43,8 @@ export const TUNNEL_SCRIPT_IPFS = 'ipfs://QmUL7cDUZ6Pk4GWGWuxrQs9vmA7g7bKnKQBVyN
  *   return { domain: `https://${plan.clientId}.acu.run`, txHash }
  */
 export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
+  validateVpsRequest(options)
+
   const scriptCid = options.scriptCid ?? TUNNEL_SCRIPT_IPFS
   if (!scriptCid) {
     throw new Error(
@@ -99,7 +108,7 @@ export function buildVpsJob(options: VpsRequest): VpsDeploymentPlan {
 
   const envVars = [
     { key: 'TUNNEL_KEY', value: tunnelKey.privateKeyPkcs8.toString('base64') },
-    { key: 'SSH_AUTHORIZED_KEY', value: options.sshKey },
+    { key: 'SSH_AUTHORIZED_KEY', value: validateSshKey(options.sshKey) },
     // tunnel.py picks the relay set from NETWORK; without this it exits 1
     { key: 'NETWORK', value: options.network ?? 'mainnet' },
   ]

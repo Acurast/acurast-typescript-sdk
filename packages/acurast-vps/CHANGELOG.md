@@ -13,6 +13,19 @@ All notable changes to `@acurast/vps` are documented here. This project follows
   without opening a connection, so a service that forwards a client-supplied
   domain to it cannot be used as a port scanner. `ProbeOptions.port` is
   deprecated.
+- **Behaviour change:** `buildVpsJob` validates its request at runtime and
+  throws before generating a key: `sshKey` must be a single-line OpenSSH
+  public key (`ssh-ed25519`, `ssh-rsa`, `ecdsa-sha2-nistp256/384/521` or the
+  `sk-` variants, with a blob that encodes the same type; surrounding
+  whitespace is trimmed, `authorized_keys` options and extra lines are
+  rejected), `httpPort` an integer in 1024-65535, `callbackUrl` an `https://`
+  URL without credentials, `scriptCid` `ipfs://` plus a CIDv0, `network`
+  `mainnet` or `canary`, and `image` a known preset. Error messages do not
+  echo the rejected values.
+
+### Added
+
+- `validateVpsRequest(request)` runs the same checks without building a job.
 
 ## [0.2.1-beta.0]
 
