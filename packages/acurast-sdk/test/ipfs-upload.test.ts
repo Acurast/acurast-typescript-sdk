@@ -3,7 +3,9 @@ import http from 'http'
 import type { AddressInfo } from 'net'
 import os from 'os'
 import path from 'path'
+import { computeCidV0 } from '../src/ipfs/cid.js'
 import { uploadScript } from '../src/ipfs/upload.js'
+import { uploadBlob } from '../src/ipfs/upload.browser.js'
 
 /** Extract the bytes of the `file` part from a multipart/form-data body. */
 const extractFilePart = (body: Buffer, contentType: string): Buffer => {
@@ -23,7 +25,7 @@ const extractFilePart = (body: Buffer, contentType: string): Buffer => {
   throw new Error('no file part')
 }
 
-type Responder = (content: Buffer) => unknown
+type Responder = (content: Buffer) => unknown | Promise<unknown>
 
 /**
  * Local stand-in for the pinning service. Responses are delayed so that
@@ -37,9 +39,9 @@ const startServer = async (respond: Responder) => {
     req.on('end', () => {
       const content = extractFilePart(Buffer.concat(chunks), req.headers['content-type'] ?? '')
       received.push(content)
-      setTimeout(() => {
+      setTimeout(async () => {
         res.setHeader('content-type', 'application/json')
-        res.end(JSON.stringify(respond(content)))
+        res.end(JSON.stringify(await respond(content)))
       }, 50)
     })
   })
@@ -52,24 +54,33 @@ const startServer = async (respond: Responder) => {
   }
 }
 
+// Behaves like an honest pinning service: returns the CID of what it received,
+// so each caller can be matched to the content the server actually got.
+const honest: Responder = async (content) => ({ IpfsHash: await computeCidV0(content) })
+const cidOf = async (text: string) => `ipfs://${await computeCidV0(Buffer.from(text, 'utf8'))}`
+
+const OTHER_CID = 'QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH' // empty file
+
+let server: Awaited<ReturnType<typeof startServer>> | undefined
+
+afterEach(async () => {
+  await server?.close()
+  server = undefined
+})
+
 describe('uploadScript', () => {
   let tmpDir: string
-  let server: Awaited<ReturnType<typeof startServer>>
-  // Echo back an identifier derived from the received content so each caller
-  // can be matched to what the server actually got.
-  const echo: Responder = (content) => ({ IpfsHash: `echo:${content.toString('utf8')}` })
 
   beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'acurast-ipfs-test-'))
   })
 
-  afterEach(async () => {
-    await server?.close()
+  afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
   it('returns each concurrent caller the result for its own content and writes no temp file', async () => {
-    server = await startServer(echo)
+    server = await startServer(honest)
     const fileA = path.join(tmpDir, 'a.js')
     const fileB = path.join(tmpDir, 'b.js')
     fs.writeFileSync(fileA, 'console.log("A")')
@@ -84,9 +95,9 @@ describe('uploadScript', () => {
       uploadScript({ script: 'console.log("C")' }, options),
     ])
 
-    expect(a).toBe('ipfs://echo:console.log("A")')
-    expect(b).toBe('ipfs://echo:console.log("B")')
-    expect(c).toBe('ipfs://echo:console.log("C")')
+    expect(a).toBe(await cidOf('console.log("A")'))
+    expect(b).toBe(await cidOf('console.log("B")'))
+    expect(c).toBe(await cidOf('console.log("C")'))
     expect(server.received.map((r) => r.toString('utf8')).sort()).toEqual([
       'console.log("A")',
       'console.log("B")',
@@ -98,7 +109,7 @@ describe('uploadScript', () => {
   })
 
   it('does not touch an existing temp_script.js in the working directory', async () => {
-    server = await startServer(echo)
+    server = await startServer(honest)
     const cwd = process.cwd()
     process.chdir(tmpDir)
     try {
@@ -108,5 +119,61 @@ describe('uploadScript', () => {
     } finally {
       process.chdir(cwd)
     }
+  })
+
+  it('rejects a response without a CID', async () => {
+    server = await startServer(() => ({}))
+    await expect(
+      uploadScript({ script: 'x' }, { endpoint: server.endpoint, apiKey: 'k' }),
+    ).rejects.toThrow('did not return a valid CID')
+  })
+
+  it('rejects a malformed CID even with verifyCid: false', async () => {
+    server = await startServer(() => ({ IpfsHash: 'not-a-cid' }))
+    await expect(
+      uploadScript({ script: 'x' }, { endpoint: server.endpoint, apiKey: 'k', verifyCid: false }),
+    ).rejects.toThrow('did not return a valid CID')
+  })
+
+  it('rejects a CID that does not match the uploaded content', async () => {
+    server = await startServer(() => ({ IpfsHash: OTHER_CID }))
+    await expect(
+      uploadScript({ script: 'x' }, { endpoint: server.endpoint, apiKey: 'k' }),
+    ).rejects.toThrow(`returned CID ${OTHER_CID}, but the uploaded content has CID`)
+  })
+
+  it('returns the service CID unchecked with verifyCid: false', async () => {
+    server = await startServer(() => ({ IpfsHash: OTHER_CID }))
+    await expect(
+      uploadScript({ script: 'x' }, { endpoint: server.endpoint, apiKey: 'k', verifyCid: false }),
+    ).resolves.toBe(`ipfs://${OTHER_CID}`)
+  })
+})
+
+describe('uploadBlob', () => {
+  const blob = new Blob(['console.log("browser")'])
+
+  it('returns the CID when it matches the uploaded blob', async () => {
+    server = await startServer(honest)
+    await expect(uploadBlob(blob, { endpoint: server.endpoint, apiKey: 'k' })).resolves.toBe(
+      await cidOf('console.log("browser")'),
+    )
+  })
+
+  it('rejects a response without a CID', async () => {
+    server = await startServer(() => ({ IpfsHash: undefined }))
+    await expect(uploadBlob(blob, { endpoint: server.endpoint, apiKey: 'k' })).rejects.toThrow(
+      'did not return a valid CID',
+    )
+  })
+
+  it('rejects a mismatching CID unless verifyCid is false', async () => {
+    server = await startServer(() => ({ IpfsHash: OTHER_CID }))
+    await expect(uploadBlob(blob, { endpoint: server.endpoint, apiKey: 'k' })).rejects.toThrow(
+      'but the uploaded content has CID',
+    )
+    await expect(
+      uploadBlob(blob, { endpoint: server.endpoint, apiKey: 'k', verifyCid: false }),
+    ).resolves.toBe(`ipfs://${OTHER_CID}`)
   })
 })

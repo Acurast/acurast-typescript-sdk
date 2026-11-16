@@ -38,6 +38,17 @@ format:
   tags:
     - docker
 
+verify_tunnel_cid:
+  stage: test
+  before_script:
+    - docker rm -f tunnel-cid-$CI_COMMIT_SHA || true
+  script:
+    - docker run --name tunnel-cid-$CI_COMMIT_SHA $GOOGLE_TAG /bin/bash -c "yarn --cwd packages/acurast-vps verify-tunnel-cid"
+  after_script:
+    - docker rm -f tunnel-cid-$CI_COMMIT_SHA || true
+  tags:
+    - docker
+
 publish_beta:
   stage: publish
   when: manual

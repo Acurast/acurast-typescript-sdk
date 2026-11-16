@@ -61,10 +61,13 @@ Upload deployment scripts to IPFS.
 ```typescript
 import { uploadScript } from '@acurast/sdk/ipfs'
 
-const cid = await uploadScript({
-  /* IpfsUploadOptions */
-})
+const uri = await uploadScript(
+  { file: './dist/bundle.zip' }, // or { script: '...' }
+  { endpoint: 'https://api.pinata.cloud', apiKey: '...' },
+)
 ```
+
+The CID returned by the pinning service is not trusted: the upload fails if the response has no well-formed CID, or if the CID differs from the CIDv0 computed locally from the uploaded bytes (`computeCidV0`, kubo importer defaults). For a pinning service that builds a different DAG layout, pass `verifyCid: false` in the options; the format check still applies. The browser `uploadBlob` behaves the same.
 
 ### `@acurast/sdk/matcher`
 

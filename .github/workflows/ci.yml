@@ -32,5 +32,8 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Verify pinned tunnel CID
+        run: yarn --cwd packages/acurast-vps verify-tunnel-cid
+
       - name: Test
         run: yarn test:ci

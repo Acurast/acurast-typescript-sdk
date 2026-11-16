@@ -3,27 +3,23 @@
  * Pin the tunnel/ bundle to IPFS and print the CID.
  *
  * Reads ACURAST_IPFS_URL + ACURAST_IPFS_API_KEY from the SDK repo root .env
- * (Pinata credentials). Bundles tunnel/ the same way `acurast deploy` would:
- * a zip with manifest.json at the root + all tunnel files, uploaded via
- * Pinata's pinFileToIPFS endpoint.
+ * (Pinata credentials). Bundles tunnel/ the same way `acurast deploy` would
+ * (see tunnel-bundle.mjs), uploaded via Pinata's pinFileToIPFS endpoint.
+ * uploadScript verifies the CID returned by Pinata against the CID computed
+ * locally from the zip and fails on mismatch.
  *
- * After running, paste the printed CID into TUNNEL_SCRIPT_IPFS in src/job.ts
- * and republish @acurast/vps.
+ * After running, src/job.ts carries the new TUNNEL_SCRIPT_IPFS; check it with
+ * `yarn verify-tunnel-cid` and republish @acurast/vps.
  *
  * Usage:  node scripts/pin-tunnel.mjs
  */
 import { readFileSync, writeFileSync, rmSync, statSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { uploadScript } from '@acurast/sdk/ipfs'
-import { zipFolder, createManifest } from '@acurast/sdk/deploy'
+import { buildTunnelZip, jobTsPath, pkgRoot, TUNNEL_SCRIPT_IPFS_PATTERN } from './tunnel-bundle.mjs'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const pkgRoot = join(__dirname, '..')
 const sdkRoot = join(pkgRoot, '../..')
-const tunnelDir = join(pkgRoot, 'tunnel')
 const tmpDir = join(pkgRoot, '.tmp')
-const deploymentName = 'acurast-vps-tunnel'
 
 // Load .env from SDK repo root
 const envPath = join(sdkRoot, '.env')
@@ -39,30 +35,16 @@ if (!IPFS_URL || !IPFS_API_KEY) {
   process.exit(1)
 }
 
-// Read image reference from src/images.ts so it stays in sync with the code
-const imagesTs = readFileSync(join(pkgRoot, 'src/images.ts'), 'utf8')
-const urlMatch = imagesTs.match(/url:\s*'([^']+)'/)
-const shaMatch = imagesTs.match(/sha256:\s*'([^']+)'/)
-if (!urlMatch || !shaMatch) {
-  console.error('Could not parse image url/sha256 from src/images.ts')
-  process.exit(1)
-}
-const image = { url: urlMatch[1], sha256: shaMatch[1] }
-
-// Build the manifest + zip via the SDK, matching what `acurast deploy` produces.
-// zipFolder pins entry timestamps to 1980-01-01 so identical inputs yield
-// byte-identical zips (and therefore a deterministic CID).
-const manifest = createManifest(deploymentName, 'start.sh', 'OnFailure', image)
-console.log('Manifest:', manifest)
-
 console.log('Zipping...')
 rmSync(tmpDir, { recursive: true, force: true })
-const { zipPath } = await zipFolder(tunnelDir, tmpDir, manifest, deploymentName)
+const { zipPath, manifest } = await buildTunnelZip(tmpDir)
+console.log('Manifest:', manifest)
 
 const zipSize = statSync(zipPath).size
 console.log(`Zip built: ${zipPath} (${zipSize} bytes)`)
 
-// Reuse the SDK's Pinata upload (same pinFileToIPFS contract `acurast deploy` uses)
+// Reuse the SDK's Pinata upload (same pinFileToIPFS contract `acurast deploy` uses).
+// It rejects a response whose CID does not match the zip.
 console.log('Uploading to Pinata...')
 const uri = await uploadScript({ file: zipPath }, { endpoint: IPFS_URL, apiKey: IPFS_API_KEY })
 const cid = uri.replace(/^ipfs:\/\//, '')
@@ -75,10 +57,9 @@ console.log('==============================================')
 console.log('')
 
 // Patch src/job.ts to bake the CID as default
-const jobTsPath = join(pkgRoot, 'src/job.ts')
 const jobTs = readFileSync(jobTsPath, 'utf8')
 const patched = jobTs.replace(
-  /export const TUNNEL_SCRIPT_IPFS = '[^']*'/,
+  TUNNEL_SCRIPT_IPFS_PATTERN,
   `export const TUNNEL_SCRIPT_IPFS = 'ipfs://${cid}'`,
 )
 if (patched === jobTs) {

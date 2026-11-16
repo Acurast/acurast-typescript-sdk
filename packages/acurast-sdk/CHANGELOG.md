@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`computeCidV0`** (`@acurast/sdk/ipfs`, `@acurast/sdk/browser`) computes the CIDv0 kubo assigns to a file with the default importer settings, plus the `isCidV0` / `isWellFormedCid` format checks.
+- `IpfsUploadOptions.verifyCid` (default `true`) to opt out of the CID comparison for pinning services with a different DAG layout.
+
+### Fixed
+
+- `uploadScript` and `uploadBlob` no longer trust the CID returned by the pinning service: a missing or malformed CID (previously returned as `ipfs://undefined`) or a CID that does not match the uploaded bytes now throws.
+- `uploadScript` no longer stages the content in a fixed `temp_script.js` in the working directory, so concurrent uploads cannot receive each other's CID.
+
 ## 1.6.0
 
 ### Added

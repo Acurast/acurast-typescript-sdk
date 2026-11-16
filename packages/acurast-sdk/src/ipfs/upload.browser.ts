@@ -1,4 +1,5 @@
 import type { IpfsUploadOptions } from './upload.js'
+import { checkPinnedCid } from './cid.js'
 
 // Re-export the shared option/type shape. `import type` is fully erased at
 // build time, so pulling it from the Node module here does NOT drag `fs` /
@@ -13,6 +14,9 @@ export type { IpfsUploadOptions } from './upload.js'
  * browser `FormData`/`Blob` APIs instead of `axios` + `form-data` + `fs`. The
  * Pinata-style request shape (field name, `pinataOptions`, filename) is kept
  * identical so the same pinning endpoint works for both.
+ *
+ * As with `uploadScript`, the returned CID must be well formed and, unless
+ * `options.verifyCid` is `false`, match the CIDv0 computed locally from `blob`.
  */
 export const uploadBlob = async (blob: Blob, options: IpfsUploadOptions): Promise<string> => {
   const form = new FormData()
@@ -36,6 +40,6 @@ export const uploadBlob = async (blob: Blob, options: IpfsUploadOptions): Promis
     throw new Error(`IPFS upload failed: ${res.status} ${res.statusText} ${detail}`)
   }
 
-  const data = (await res.json()) as { IpfsHash: string }
-  return `ipfs://${data.IpfsHash}`
+  const data: unknown = await res.json()
+  return checkPinnedCid(data, new Uint8Array(await blob.arrayBuffer()), options.verifyCid ?? true)
 }
