@@ -3,6 +3,7 @@ import http from 'http'
 import type { AddressInfo } from 'net'
 import os from 'os'
 import path from 'path'
+import util from 'util'
 import { computeCidV0 } from '../src/ipfs/cid.js'
 import { uploadScript } from '../src/ipfs/upload.js'
 import { uploadBlob } from '../src/ipfs/upload.browser.js'
@@ -175,5 +176,99 @@ describe('uploadBlob', () => {
     await expect(
       uploadBlob(blob, { endpoint: server.endpoint, apiKey: 'k', verifyCid: false }),
     ).resolves.toBe(`ipfs://${OTHER_CID}`)
+  })
+})
+
+describe('upload errors do not leak the API key', () => {
+  const API_KEY = 'secret-pinning-token-0123456789abcdef'
+
+  /** Pinning service stand-in that rejects every request, echoing the Authorization header. */
+  const startRejectingServer = async (status: number) => {
+    const httpServer = http.createServer((req, res) => {
+      req.resume()
+      req.on('end', () => {
+        res.statusCode = status
+        res.setHeader('content-type', 'application/json')
+        res.end(JSON.stringify({ error: 'denied', echoed: req.headers.authorization }))
+      })
+    })
+    await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', resolve))
+    const { port } = httpServer.address() as AddressInfo
+    return {
+      endpoint: `http://127.0.0.1:${port}`,
+      received: [],
+      close: () => new Promise<void>((resolve) => httpServer.close(() => resolve())),
+    }
+  }
+
+  /** An endpoint on a port nothing listens on. */
+  const closedEndpoint = async (): Promise<string> => {
+    const probe = http.createServer()
+    await new Promise<void>((resolve) => probe.listen(0, '127.0.0.1', resolve))
+    const { port } = probe.address() as AddressInfo
+    await new Promise<void>((resolve) => probe.close(() => resolve()))
+    return `http://127.0.0.1:${port}`
+  }
+
+  const catchError = async (promise: Promise<unknown>): Promise<any> => {
+    try {
+      await promise
+    } catch (error) {
+      return error
+    }
+    throw new Error('expected a rejection')
+  }
+
+  const expectNoSecret = (error: any) => {
+    expect(error).toBeInstanceOf(Error)
+    expect(error.cause).toBeUndefined()
+    expect(error.config).toBeUndefined()
+    expect(error.request).toBeUndefined()
+    expect(error.response).toBeUndefined()
+    const renderings = [
+      String(error),
+      error.message,
+      error.stack ?? '',
+      JSON.stringify(error),
+      JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      util.inspect(error, { depth: Infinity, showHidden: true }),
+    ]
+    for (const text of renderings) {
+      expect(text).not.toContain(API_KEY)
+      expect(text).not.toContain('Authorization')
+    }
+  }
+
+  it('uploadScript reports the status of a rejected request without the token', async () => {
+    server = await startRejectingServer(401)
+    const error = await catchError(
+      uploadScript({ script: 'x' }, { endpoint: server.endpoint, apiKey: API_KEY }),
+    )
+    expectNoSecret(error)
+    expect(error.message).toContain('IPFS upload failed: 401 Unauthorized')
+    expect(error.message).toContain('denied')
+    // The service echoed the header back; the key is redacted from the excerpt.
+    expect(error.message).toContain('Bearer [redacted]')
+    expect(error.status).toBe(401)
+  })
+
+  it('uploadScript reports a network failure without the token', async () => {
+    const error = await catchError(
+      uploadScript({ script: 'x' }, { endpoint: await closedEndpoint(), apiKey: API_KEY }),
+    )
+    expectNoSecret(error)
+    expect(error.message).toContain('IPFS upload failed: ECONNREFUSED')
+    expect(error.status).toBeUndefined()
+  })
+
+  it('uploadBlob reports the status of a rejected request without the token', async () => {
+    server = await startRejectingServer(403)
+    const error = await catchError(
+      uploadBlob(new Blob(['x']), { endpoint: server.endpoint, apiKey: API_KEY }),
+    )
+    expectNoSecret(error)
+    expect(error.message).toContain('IPFS upload failed: 403 Forbidden')
+    expect(error.message).toContain('denied')
+    expect(error.status).toBe(403)
   })
 })

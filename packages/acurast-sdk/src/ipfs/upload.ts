@@ -2,6 +2,7 @@ import axios from 'axios'
 import FormDataModule from 'form-data'
 import fs from 'fs'
 import { checkPinnedCid } from './cid.js'
+import { describeResponseBody, uploadFailedError } from './upload-error.js'
 
 export interface IpfsUploadOptions {
   /** Base URL of the pinning service (e.g. a Pinata gateway). */
@@ -31,6 +32,9 @@ export type UploadScriptInput = { file: string } | { script: string }
  * `options.verifyCid` is `false`, equal to the CIDv0 of the uploaded bytes
  * (see {@link computeCidV0}); otherwise this throws.
  *
+ * A failed request rejects with an `Error` that carries the HTTP status and a
+ * short description, but never the request configuration or the API key.
+ *
  * Endpoint and API key must be provided explicitly — this package never reads
  * `process.env`. Callers (e.g. the CLI) are responsible for sourcing the
  * values from their own configuration surface.
@@ -50,8 +54,9 @@ export const uploadScript = async (
   form.append('pinataOptions', '{"cidVersion": 0}')
   form.append('pinataMetadata', '{"name": "script.js"}')
 
+  let res
   try {
-    const res = await axios.post<{ IpfsHash: string }>(
+    res = await axios.post<{ IpfsHash: string }>(
       `${options.endpoint}/pinning/pinFileToIPFS`,
       form,
       {
@@ -61,9 +66,27 @@ export const uploadScript = async (
         },
       },
     )
-
-    return await checkPinnedCid(res.data, content, options.verifyCid ?? true)
   } catch (error) {
-    throw error
+    // Never rethrow the AxiosError: its config (and `toJSON()` / inspect
+    // output) contains the Authorization header with the API key.
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        throw uploadFailedError(
+          options.apiKey,
+          error.response.status,
+          error.response.status,
+          error.response.statusText,
+          describeResponseBody(error.response.data),
+        )
+      }
+      throw uploadFailedError(options.apiKey, undefined, error.code, error.message)
+    }
+    throw uploadFailedError(
+      options.apiKey,
+      undefined,
+      error instanceof Error ? error.message : 'unknown error',
+    )
   }
+
+  return checkPinnedCid(res.data, content, options.verifyCid ?? true)
 }

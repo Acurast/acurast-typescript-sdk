@@ -1,5 +1,6 @@
 import type { IpfsUploadOptions } from './upload.js'
 import { checkPinnedCid } from './cid.js'
+import { describeResponseBody, uploadFailedError } from './upload-error.js'
 
 // Re-export the shared option/type shape. `import type` is fully erased at
 // build time, so pulling it from the Node module here does NOT drag `fs` /
@@ -37,7 +38,13 @@ export const uploadBlob = async (blob: Blob, options: IpfsUploadOptions): Promis
 
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
-    throw new Error(`IPFS upload failed: ${res.status} ${res.statusText} ${detail}`)
+    throw uploadFailedError(
+      options.apiKey,
+      res.status,
+      res.status,
+      res.statusText,
+      describeResponseBody(detail),
+    )
   }
 
   const data: unknown = await res.json()
