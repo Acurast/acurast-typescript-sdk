@@ -2,7 +2,8 @@
 // of user scripts when enableDevtools is true. It overrides console methods to
 // forward logs to the Acurast DevTools API.
 //
-// Placeholder __DEVTOOLS_API_URL__ is replaced at injection time.
+// The quoted API URL placeholder below is replaced with a JSON string literal
+// at injection time (see inject-devtools-snippet.ts).
 
 ;(() => {
   const DEVTOOLS_API_URL = '__DEVTOOLS_API_URL__'

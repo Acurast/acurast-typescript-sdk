@@ -18,6 +18,55 @@ function selfDir(): string {
   return dirname(fileURLToPath(import.meta.url))
 }
 
+/** Matches a hostname that the URL parser has already normalised to dotted-quad IPv4. */
+const IPV4_LOOPBACK = /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
+
+/** DNS names and IPv4 literals after URL normalisation (lowercase). */
+const HOSTNAME = /^[a-z0-9.-]+$/
+
+/** Bracketed IPv6 literals after URL normalisation. */
+const IPV6_HOSTNAME = /^\[[0-9a-f:.]+\]$/
+
+const isLoopbackHost = (hostname: string): boolean =>
+  hostname === 'localhost' || hostname === '[::1]' || IPV4_LOOPBACK.test(hostname)
+
+/**
+ * Checks that `devtoolsApiUrl` is a plain `https://` URL (or `http://` on a
+ * loopback host, for local development) before it is embedded in deployment
+ * code. Throws without echoing the input.
+ */
+export function validateDevtoolsApiUrl(devtoolsApiUrl: string): string {
+  if (typeof devtoolsApiUrl !== 'string' || devtoolsApiUrl.trim() === '') {
+    throw new Error('Invalid devtools API URL: expected a non-empty https:// URL.')
+  }
+
+  let url: URL
+  try {
+    url = new URL(devtoolsApiUrl)
+  } catch {
+    throw new Error('Invalid devtools API URL: not a valid URL. Expected an https:// URL.')
+  }
+
+  const secure = url.protocol === 'https:'
+  const localPlaintext = url.protocol === 'http:' && isLoopbackHost(url.hostname)
+  if (!secure && !localPlaintext) {
+    throw new Error(
+      'Invalid devtools API URL: expected an https:// URL (http:// is only allowed for localhost).',
+    )
+  }
+  if (!HOSTNAME.test(url.hostname) && !IPV6_HOSTNAME.test(url.hostname)) {
+    throw new Error('Invalid devtools API URL: the host contains unsupported characters.')
+  }
+  if (url.username !== '' || url.password !== '') {
+    throw new Error('Invalid devtools API URL: credentials in the URL are not allowed.')
+  }
+  if (url.search !== '' || url.hash !== '') {
+    throw new Error('Invalid devtools API URL: query strings and fragments are not allowed.')
+  }
+
+  return devtoolsApiUrl
+}
+
 /**
  * Reads the compiled `devtools-snippet.js` bundled with this package, fills
  * in the devtools API URL placeholder, and prepends it to the entrypoint
@@ -33,6 +82,8 @@ export async function injectDevtoolsSnippet(
   devtoolsApiUrl: string,
   snippetDir?: string,
 ): Promise<string> {
+  validateDevtoolsApiUrl(devtoolsApiUrl)
+
   const dir = snippetDir ?? selfDir()
   const snippetPath = join(dir, 'devtools-snippet.js')
   let snippet = readFileSync(snippetPath, 'utf-8')
@@ -43,7 +94,13 @@ export async function injectDevtoolsSnippet(
     .replace(/^\/\/#\s*sourceMappingURL=.*$/m, '')
     .trim()
 
-  snippet = snippet.replace(/__DEVTOOLS_API_URL__/g, devtoolsApiUrl)
+  // Replace the whole quoted literal with a JSON string literal, through a
+  // replacer function so `$&`, `$'` and friends in the URL are not expanded.
+  const literal = JSON.stringify(devtoolsApiUrl)
+  snippet = snippet.replace(/(['"])__DEVTOOLS_API_URL__\1/g, () => literal)
+  if (snippet.includes('__DEVTOOLS_API_URL__')) {
+    throw new Error('devtools snippet contains an unquoted API URL placeholder')
+  }
 
   const zip = new AdmZip(zipPath)
   const entry = zip.getEntry(entrypoint)

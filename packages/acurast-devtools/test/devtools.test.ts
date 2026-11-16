@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { tmpdir } from 'os'
-import { injectDevtoolsSnippet } from '../src/inject-devtools-snippet.js'
+import { injectDevtoolsSnippet, validateDevtoolsApiUrl } from '../src/inject-devtools-snippet.js'
 
 // The package is ESM, so __dirname does not exist — derive it from import.meta.
 const testDir = dirname(fileURLToPath(import.meta.url))
@@ -138,4 +138,65 @@ describe('devtools snippet injection', () => {
       expect(content).toContain(`console.${method}`)
     }
   })
+
+  function readApiUrlLiteral(content: string): string {
+    const match = content.match(/const DEVTOOLS_API_URL = ("(?:[^"\\]|\\.)*");/)
+    expect(match).not.toBeNull()
+    return JSON.parse(match![1])
+  }
+
+  it('embeds the URL as a JSON string literal so quotes cannot break out', async () => {
+    const zipPath = createTestZip('index.js', '// user code')
+    const apiUrl = "https://api.example.com/x';globalThis.PWNED=1;//"
+
+    await injectDevtoolsSnippet(zipPath, 'index.js', apiUrl, SNIPPET_DIR)
+
+    const content = new AdmZip(zipPath).getEntry('index.js')!.getData().toString('utf-8')
+    expect(readApiUrlLiteral(content)).toBe(apiUrl)
+    expect(content).not.toContain("'https://api.example.com/x'")
+  })
+
+  it("does not expand $& or $' replacement patterns in the URL", async () => {
+    const zipPath = createTestZip('index.js', '// user code')
+    const apiUrl = "https://api.example.com/$&/$'/$`"
+
+    await injectDevtoolsSnippet(zipPath, 'index.js', apiUrl, SNIPPET_DIR)
+
+    const content = new AdmZip(zipPath).getEntry('index.js')!.getData().toString('utf-8')
+    expect(readApiUrlLiteral(content)).toBe(apiUrl)
+  })
+
+  it.each([
+    ["https://x.example';globalThis.PWNED=1;//", 'unsupported characters'],
+    ['http://api.devtools.acurast.com', 'expected an https:// URL'],
+    ['javascript:alert(1)', 'expected an https:// URL'],
+    ['ftp://api.devtools.acurast.com', 'expected an https:// URL'],
+    ['not a url', 'not a valid URL'],
+    ['', 'non-empty'],
+    ['https://user:secret@api.devtools.acurast.com', 'credentials'],
+    ['https://api.devtools.acurast.com/?a=1', 'query strings'],
+    ['https://api.devtools.acurast.com/#frag', 'query strings'],
+  ])('rejects the devtools API URL %p', async (apiUrl, message) => {
+    const zipPath = createTestZip('index.js', '// user code')
+
+    await expect(injectDevtoolsSnippet(zipPath, 'index.js', apiUrl, SNIPPET_DIR)).rejects.toThrow(
+      message,
+    )
+    // The bundle is left untouched.
+    const content = new AdmZip(zipPath).getEntry('index.js')!.getData().toString('utf-8')
+    expect(content).toBe('// user code')
+  })
+
+  it('does not echo the rejected URL in the error message', () => {
+    expect(() => validateDevtoolsApiUrl('https://user:hunter2@api.example.com')).toThrow(
+      expect.objectContaining({ message: expect.not.stringContaining('hunter2') }),
+    )
+  })
+
+  it.each(['http://localhost:8080', 'http://127.0.0.1:3000', 'http://[::1]:3000'])(
+    'allows plaintext http on loopback host %p',
+    (apiUrl) => {
+      expect(validateDevtoolsApiUrl(apiUrl)).toBe(apiUrl)
+    },
+  )
 })

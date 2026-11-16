@@ -55,6 +55,8 @@ await injectDevtoolsSnippet(
 
 This prepends the compiled DevTools snippet to the entrypoint file inside the zip bundle, so logs are forwarded to DevTools once the job runs.
 
+`devtoolsApiUrl` must be an `https://` URL without credentials, query string or fragment (`http://` is accepted only for `localhost`, `127.0.0.0/8` and `[::1]`). Any other value is rejected before the bundle is modified.
+
 ## API
 
 - `getDevtoolsViewKey(jobId, options)` → `Promise<ViewKeyResponse>`
