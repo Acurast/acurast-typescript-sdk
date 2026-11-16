@@ -72,6 +72,28 @@ import {
 
 Helpers include `convertConfigToJob`, duration constants (`second`, `minute`, `hour`, `day`), sensible defaults (`DEFAULT_REWARD`, `DEFAULT_REPLICAS`, ...), the `JobEnvironmentService` for encrypted env vars, and an `InMemoryKeyStore`.
 
+#### RPC endpoint security
+
+The RPC endpoint is trusted with the confidentiality of your environment variables. `setEnvVars` reads the assigned processors and their public keys from that endpoint and encrypts the variables to those keys; the SDK does not yet check that the keys belong to an attested processor. A malicious RPC node, or anyone who can intercept a plaintext connection to it, can return its own key and decrypt the variables once they are on chain. Only use RPC nodes you trust.
+
+`AcurastService` and `setEnvVars` therefore check the endpoint before connecting (with `validateRpcEndpoint`, also exported):
+
+- `wss://` is accepted for any host.
+- Plaintext `ws://` is accepted only for loopback hosts (`localhost`, `127.0.0.0/8`, `[::1]`), so local dev nodes keep working.
+- Plaintext `ws://` to any other host throws, unless you pass `allowInsecureRpcEndpoint: true`.
+- Malformed URLs, other schemes (`http://`, `https://`, ...) and URLs with a username or password always throw. Error messages include only the scheme and host, never credentials, path or query.
+
+```typescript
+new AcurastService('wss://archive.mainnet.acurast.com') // ok
+new AcurastService('ws://127.0.0.1:9944') // ok, loopback
+new AcurastService('ws://10.0.0.5:9944') // throws
+new AcurastService('ws://10.0.0.5:9944', { allowInsecureRpcEndpoint: true }) // ok, at your own risk
+
+await setEnvVars(job, { wallet, rpcEndpoint: 'ws://10.0.0.5:9944', allowInsecureRpcEndpoint: true })
+```
+
+`deployProject` and `deployProjectBrowser` submit env vars through `setEnvVars`, so with a plaintext non-loopback endpoint the env-var step fails (reported through `statusCallback` as `EnvironmentVariablesSet` with an `error`); use a `wss://` endpoint for deployments.
+
 ### `@acurast/sdk/ipfs`
 
 Upload deployment scripts to IPFS.

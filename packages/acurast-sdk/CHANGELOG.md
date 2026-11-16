@@ -7,10 +7,12 @@
 - **`computeCidV0`** (`@acurast/sdk/ipfs`, `@acurast/sdk/browser`) computes the CIDv0 kubo assigns to a file with the default importer settings, plus the `isCidV0` / `isWellFormedCid` format checks.
 - `IpfsUploadOptions.verifyCid` (default `true`) to opt out of the CID comparison for pinning services with a different DAG layout.
 - `ZipFolderOptions` (`includeDotfiles`, `exclude`), accepted by `zipFolder` as an optional last argument and by `deployProject` as `options.bundle`.
+- **`validateRpcEndpoint`**, `isLoopbackHost` and the `RpcEndpointOptions` type (`@acurast/sdk/chain`, `@acurast/sdk/browser`). `AcurastService` takes `RpcEndpointOptions` as an optional second constructor argument, and `SetEnvVarsOptions` accepts `allowInsecureRpcEndpoint`.
 
 ### Changed
 
 - **Behaviour change: dotfiles are no longer bundled.** When a folder is deployed, `zipFolder` now leaves out every file or folder whose name starts with `.` (`.env`, `.git/`, `.npmrc`, `.acurast/`, ...), because the bundle is pinned publicly on IPFS. It warns with the list of excluded paths. Projects that need dotfiles at runtime must set `includeDotfiles: true`. Single-file deployments are unaffected.
+- **Behaviour change: insecure RPC endpoints are rejected.** Env vars are encrypted to processor keys read from the RPC endpoint, so a plaintext connection lets an attacker on the network path substitute their own key. `new AcurastService(endpoint)` and `setEnvVars` now throw before connecting unless the endpoint is `wss://`, or `ws://` on a loopback host (`localhost`, `127.0.0.0/8`, `[::1]`). Plaintext `ws://` to other hosts requires `allowInsecureRpcEndpoint: true`. Malformed URLs, other schemes and URLs with embedded credentials are always rejected. `setEnvVars` validates the endpoint even when there are no env vars to set. In `deployProject` / `deployProjectBrowser`, a plaintext non-loopback endpoint makes the env-var step fail. The README now documents that the RPC endpoint is trusted with env-var confidentiality.
 
 ### Fixed
 

@@ -6,11 +6,17 @@ import type { AcurastSigner } from './signer.js'
 import type { TransactionQueue } from './tx-queue.js'
 import type { KeyStore } from './key-store.js'
 import { NOOP_LOGGER, type Logger } from '../deploy/logger.js'
+import { type RpcEndpointOptions, validateRpcEndpoint } from './rpc-endpoint.js'
 
-export interface SetEnvVarsOptions {
+export interface SetEnvVarsOptions extends RpcEndpointOptions {
   /** Wallet used to sign the `setEnvironments` extrinsic(s). */
   wallet: AcurastSigner
-  /** WebSocket RPC endpoint for the Acurast chain. */
+  /**
+   * WebSocket RPC endpoint for the Acurast chain. Must be `wss://` (or `ws://`
+   * on a loopback host) unless `allowInsecureRpcEndpoint` is set. The env vars
+   * are encrypted to the processor keys this endpoint returns, so it is
+   * trusted with their confidentiality.
+   */
   rpcEndpoint: string
   /**
    * Submission authority for the `setEnvironments` extrinsic. Leave unset to
@@ -58,6 +64,8 @@ export const setEnvVars = async (
   job: Job & { envVars?: EnvVar[] },
   options: SetEnvVarsOptions,
 ): Promise<{ hash?: string }> => {
+  validateRpcEndpoint(options.rpcEndpoint, options)
+
   const envVars = job.envVars ?? []
   if (envVars.length === 0) {
     return {}
@@ -68,7 +76,9 @@ export const setEnvVars = async (
   const logger = options.logger ?? NOOP_LOGGER
   const rpcTimeoutMs = 60_000
 
-  const acurast = new AcurastService(options.rpcEndpoint)
+  const acurast = new AcurastService(options.rpcEndpoint, {
+    allowInsecureRpcEndpoint: options.allowInsecureRpcEndpoint,
+  })
   if (options.queue !== undefined) {
     acurast.queue = options.queue
   }

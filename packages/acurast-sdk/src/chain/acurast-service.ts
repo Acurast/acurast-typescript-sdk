@@ -4,6 +4,7 @@ import type { SubmittableExtrinsic, UnsubscribePromise, VoidFn } from '@polkadot
 import type { Event } from '@polkadot/types/interfaces/system'
 import { type AcurastSigner } from './signer.js'
 import { type TransactionQueue, getDefaultQueue } from './tx-queue.js'
+import { type RpcEndpointOptions, validateRpcEndpoint } from './rpc-endpoint.js'
 import '@polkadot/api-augment'
 import type { Hash } from '@polkadot/types/interfaces/runtime'
 import type { Codec } from '@polkadot/types/types'
@@ -36,7 +37,8 @@ export interface EventSub<T> {
  * queries on the same service instance share one websocket.
  *
  * The RPC endpoint must be supplied explicitly — this class never reads
- * `process.env`.
+ * `process.env`. It must be `wss://` (or `ws://` on a loopback host) unless
+ * the caller opts in with `allowInsecureRpcEndpoint`.
  */
 export class AcurastService {
   public api?: ApiPromise
@@ -54,8 +56,15 @@ export class AcurastService {
   private eventSubs: Map<string, EventSub<any>> = new Map()
   private unsubEvents?: VoidFn
 
-  constructor(rpcEndpoint: string) {
-    this.wsProvider = new WsProvider(rpcEndpoint)
+  /**
+   * @param rpcEndpoint `wss://` URL of an Acurast RPC node. Plaintext `ws://`
+   *   is accepted only for loopback hosts unless
+   *   `options.allowInsecureRpcEndpoint` is set; see {@link validateRpcEndpoint}.
+   *   The endpoint is trusted with the processor keys env vars are encrypted to.
+   * @throws if the endpoint is rejected, before any connection is opened.
+   */
+  constructor(rpcEndpoint: string, options: RpcEndpointOptions = {}) {
+    this.wsProvider = new WsProvider(validateRpcEndpoint(rpcEndpoint, options))
   }
 
   public async connect(): Promise<ApiPromise> {
