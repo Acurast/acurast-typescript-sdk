@@ -31,15 +31,16 @@ $ npm install @polkadot/keyring @polkadot/util @polkadot/wasm-crypto
 ```typescript
 import { getDevtoolsViewKey, buildDevtoolsUrl } from '@acurast/devtools'
 
-const { viewKey, deploymentId } = await getDevtoolsViewKey(jobId, {
+// jobId: the full `Acurast:<owner>:<number>` deployment id
+const { viewKey, jobNumber } = await getDevtoolsViewKey(jobId, {
   apiUrl: 'https://api.devtools.acurast.com',
-  mnemonic: process.env.MNEMONIC!
+  signer, // the account that owns the deployment
 })
 
-const url = buildDevtoolsUrl('https://devtools.acurast.com', deploymentId, viewKey)
+const url = buildDevtoolsUrl('https://devtools.acurast.com', jobId, viewKey)
 ```
 
-Requests are signed with an ed25519 keypair derived from the provided `mnemonic`.
+Requests are signed by `signer` (a `KeyringPair` or a wallet signer with `signRaw`); the deprecated `mnemonic` option derives an sr25519 pair. The signature authorises a view key for that deployment, so `apiUrl` must be the DevTools API you trust: it has to be `https://` (`http://` is accepted only for `localhost`, `127.0.0.0/8` and `[::1]`).
 
 ### Inject the DevTools snippet into a deployment bundle
 
@@ -54,6 +55,8 @@ await injectDevtoolsSnippet(
 ```
 
 This prepends the compiled DevTools snippet to the entrypoint file inside the zip bundle, so logs are forwarded to DevTools once the job runs.
+
+**Everything the deployment logs leaves the processor.** The snippet wraps `console.log`, `warn`, `error`, `info` and `debug` and sends every call's arguments to the DevTools API. Do not log secrets (for example values of environment variables) in a deployment with DevTools enabled.
 
 `devtoolsApiUrl` must be an `https://` URL without credentials, query string or fragment (`http://` is accepted only for `localhost`, `127.0.0.0/8` and `[::1]`). Any other value is rejected before the bundle is modified.
 

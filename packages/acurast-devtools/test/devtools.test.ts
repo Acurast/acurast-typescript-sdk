@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { tmpdir } from 'os'
+import { getDevtoolsViewKey } from '../src/devtools-api.js'
 import { injectDevtoolsSnippet, validateDevtoolsApiUrl } from '../src/inject-devtools-snippet.js'
 
 // The package is ESM, so __dirname does not exist — derive it from import.meta.
@@ -197,6 +198,26 @@ describe('devtools snippet injection', () => {
     'allows plaintext http on loopback host %p',
     (apiUrl) => {
       expect(validateDevtoolsApiUrl(apiUrl)).toBe(apiUrl)
+    },
+  )
+})
+
+describe('getDevtoolsViewKey', () => {
+  it.each(['http://api.devtools.acurast.com', 'not a url', 'https://u:p@api.example.com'])(
+    'rejects the API URL %p before asking the signer to sign',
+    async (apiUrl) => {
+      let signCalls = 0
+      const signRaw = async () => {
+        signCalls++
+        return { signature: '0x00' }
+      }
+      await expect(
+        getDevtoolsViewKey('Acurast:owner:1', {
+          apiUrl,
+          signer: { address: 'owner', signer: { signRaw } },
+        }),
+      ).rejects.toThrow('Invalid devtools API URL')
+      expect(signCalls).toBe(0)
     },
   )
 })

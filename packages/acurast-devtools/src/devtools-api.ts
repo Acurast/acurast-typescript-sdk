@@ -3,6 +3,7 @@ import Keyring from '@polkadot/keyring'
 import type { KeyringPair } from '@polkadot/keyring/types'
 import { u8aToHex, u8aToU8a } from '@polkadot/util'
 import { waitReady } from '@polkadot/wasm-crypto'
+import { validateDevtoolsApiUrl } from './inject-devtools-snippet.js'
 
 /**
  * A signer for devtools requests. Either a mnemonic-derived `KeyringPair` (the
@@ -38,7 +39,13 @@ export interface ViewKeyResponse {
 }
 
 export interface DevtoolsOptions {
-  /** Base URL of the DevTools HTTP API (e.g. https://api.devtools.acurast.com). */
+  /**
+   * Base URL of the DevTools HTTP API (e.g. https://api.devtools.acurast.com).
+   * Must be `https://` (`http://` only on a loopback host), without
+   * credentials, query string or fragment. The request carries a signature
+   * that grants a view key for the deployment, so only point this at the
+   * DevTools API you trust.
+   */
   apiUrl: string
   /**
    * Signer for the request. Must be the account that owns the deployment: the
@@ -130,6 +137,9 @@ export async function getDevtoolsViewKey(
   jobId: string,
   options: DevtoolsOptions,
 ): Promise<ViewKeyResponse> {
+  // Checked before signing, so no signature is produced for a plaintext or
+  // malformed endpoint.
+  validateDevtoolsApiUrl(options.apiUrl)
   const signer = await resolveSigner(options)
   const address = signer.address
   const timestamp = Math.floor(Date.now() / 1000).toString()
