@@ -17,11 +17,30 @@ export interface VpsProbeResult {
 }
 
 export interface ProbeOptions {
-  /** Tunnel port. Defaults to 443. */
+  /**
+   * Tunnel port. Only 443 is accepted; any other value makes the probe return
+   * `{ ready: false }` without connecting.
+   *
+   * @deprecated The tunnel is always served on 443. Kept for compatibility.
+   */
   port?: number
   /** Overall probe deadline. Defaults to 10 000 ms. */
   timeoutMs?: number
 }
+
+/** The only port the Acurast tunnel relay serves VPS domains on. */
+const TUNNEL_PORT = 443
+
+/**
+ * VPS tunnel domains: `<clientId>.acu.run` (mainnet) or
+ * `<clientId>.canary.acu.run`, where the clientId is 16 lowercase hex digits
+ * (see `computeClientId`).
+ */
+const VPS_DOMAIN = /^[0-9a-f]{16}\.(?:canary\.)?acu\.run$/
+
+/** True when `domain` is a VPS tunnel domain that {@link probeVpsReady} may connect to. */
+export const isVpsDomain = (domain: string): boolean =>
+  typeof domain === 'string' && VPS_DOMAIN.test(domain)
 
 /**
  * Poll a VPS tunnel to check whether the processor has finished booting and
@@ -30,6 +49,11 @@ export interface ProbeOptions {
  * 1. TLS-connect to `<domain>:443` with SNI and standard trust anchors.
  * 2. Read the plaintext bytes the tunnel forwards from dropbear.
  * 3. Match the `SSH-` protocol banner.
+ *
+ * Only `<16 hex>.acu.run` and `<16 hex>.canary.acu.run` on port 443 are
+ * probed. Any other domain or port returns `{ ready: false, error }` without
+ * opening a connection, so an endpoint that forwards a client-supplied domain
+ * cannot be used to scan other hosts or ports.
  *
  * Returns `{ ready: false, error }` on any failure so callers can just poll
  * on an interval without try/catch. The agent's `/vps/probe` endpoint wraps
@@ -40,8 +64,18 @@ export const probeVpsReady = (
   domain: string,
   options: ProbeOptions = {},
 ): Promise<VpsProbeResult> => {
-  const port = options.port ?? 443
+  const port = options.port ?? TUNNEL_PORT
   const timeoutMs = options.timeoutMs ?? 10_000
+
+  if (!isVpsDomain(domain)) {
+    return Promise.resolve({
+      ready: false,
+      error: 'invalid domain: expected <16 hex>.acu.run or <16 hex>.canary.acu.run',
+    })
+  }
+  if (port !== TUNNEL_PORT) {
+    return Promise.resolve({ ready: false, error: `invalid port: only ${TUNNEL_PORT} is allowed` })
+  }
 
   return new Promise<VpsProbeResult>((resolve) => {
     let settled = false

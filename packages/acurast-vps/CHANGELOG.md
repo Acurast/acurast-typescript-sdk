@@ -3,6 +3,17 @@
 All notable changes to `@acurast/vps` are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Behaviour change:** `probeVpsReady` only connects to
+  `<16 hex>.acu.run` and `<16 hex>.canary.acu.run` on port 443. Any other
+  domain, or a `port` option other than 443, returns `{ ready: false, error }`
+  without opening a connection, so a service that forwards a client-supplied
+  domain to it cannot be used as a port scanner. `ProbeOptions.port` is
+  deprecated.
+
 ## [0.2.1-beta.0]
 
 ### Fixed

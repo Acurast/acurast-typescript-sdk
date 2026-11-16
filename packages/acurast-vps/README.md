@@ -27,7 +27,9 @@ npm install @acurast/vps
    agent must inject via `setEnvironment` once a processor acknowledges.
 4. **`probeVpsReady(domain)`** — TLS handshake + banner check on
    `<domain>:443` so callers can poll for tunnel readiness without hardcoding
-   a retry loop.
+   a retry loop. Only `<clientId>.acu.run` and `<clientId>.canary.acu.run` on
+   port 443 are probed; any other domain or port returns `{ ready: false }`
+   without connecting.
 5. **Pinned tunnel bundle** (`tunnel/`) — `start.sh`, `tunnel.py`,
    `callback.sh`, `getifaddrs_override.c`. Installed on the processor from
    IPFS. This directory is included in the npm package so the CID and the
