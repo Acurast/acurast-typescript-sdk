@@ -17,6 +17,9 @@
     "import": "./dist/esm/index.js",
     "require": "./dist/cjs/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rm -rf ./dist && tsc && tsc -p tsconfig.cjs.json",
     "test": "true",
