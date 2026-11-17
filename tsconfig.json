@@ -28,10 +28,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-    "skipLibCheck": true,
-    "paths": {
-      "@acurast/transport-websocket": ["./pacakges/acurast-transport-websocket/src"],
-      "@acurast/transport-websocket/*": ["./pacakges/acurast-transport-websocket/src"]
-    }
+    "skipLibCheck": true
   }
 }
