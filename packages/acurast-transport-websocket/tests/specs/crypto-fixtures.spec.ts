@@ -153,6 +153,15 @@ describe('Crypto fixtures', function () {
     })
   })
 
+  it('accepts a secret key without its leading zero byte, as elliptic did', function () {
+    const data = Buffer.alloc(32, 7)
+    const short = Buffer.alloc(31, 9)
+    const padded = Buffer.concat([Buffer.alloc(1), short])
+    expect(Buffer.from(crypto.signP256(data, short)).toString('hex')).eq(
+      Buffer.from(crypto.signP256(data, padded)).toString('hex'),
+    )
+  })
+
   FIXTURES.sha256.forEach((f, i) => {
     it(`hashes like the previous implementation #${i}`, function () {
       expect(Buffer.from(crypto.sha256(Buffer.from(f.inputHex, 'hex'))).toString('hex')).eq(

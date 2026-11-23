@@ -71,7 +71,8 @@ export async function jsonRpcCall<T>(
     const message =
       err.name === 'TimeoutError'
         ? 'Matcher API request timed out'
-        : (err.message ?? 'Unknown error')
+        : // fetch reports only "fetch failed"; the reason (ECONNREFUSED, ENOTFOUND, TLS) is in `cause`
+          (err.cause?.message ?? err.message ?? 'Unknown error')
     return { ok: false, error: message }
   }
 }

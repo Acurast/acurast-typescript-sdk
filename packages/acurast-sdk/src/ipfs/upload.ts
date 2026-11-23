@@ -22,4 +22,4 @@ export const uploadScript = async (
   input: UploadScriptInput,
   options: IpfsUploadOptions,
 ): Promise<string> =>
-  uploadBlob(new Blob(['file' in input ? fs.readFileSync(input.file) : input.script]), options)
+  uploadBlob('file' in input ? await fs.openAsBlob(input.file) : new Blob([input.script]), options)

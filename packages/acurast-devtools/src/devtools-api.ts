@@ -166,7 +166,8 @@ export async function getDevtoolsViewKey(
     const body = await response.text()
     detail = body || `Request failed with status code ${status}`
   } catch (error: any) {
-    detail = error.message
+    // fetch reports only "fetch failed"; the reason (ECONNREFUSED, ENOTFOUND, TLS) is in `cause`
+    detail = error.cause?.message ?? error.message
   }
   options.logger?.error(`DevTools view-key failed: ${status} ${detail}`)
   throw new Error(`DevTools API ${status ?? 'error'}: ${detail}`)

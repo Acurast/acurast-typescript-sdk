@@ -4,8 +4,8 @@
 
 ### Changed
 
-- **zod 4** — `validateConfig()` notes keep their shape minus the `received` field, and the message texts follow zod 4 (e.g. `Required` is now `Invalid input: expected string, received undefined`). Code that compares note messages needs an update.
-- HTTP calls (IPFS upload, matcher API) use the built-in `fetch` instead of `axios` and `form-data`. `uploadScript` no longer writes a `temp_script.js` into the working directory.
+- **zod 4** — `validateConfig()` notes are now zod 4 issues. Message texts change (e.g. `Required` is now `Invalid input: expected string, received undefined`) and so do some fields: no `received`; `invalid_union` carries `errors` instead of `unionErrors`; literal and enum failures have code `invalid_value` with `values`; `too_small`/`too_big` use `origin` instead of `type`. Code that reads note messages, codes or these fields needs an update.
+- HTTP calls (IPFS upload, matcher API) use the built-in `fetch` instead of `axios` and `form-data`. Failed requests throw a plain `Error` (e.g. `IPFS upload failed: 401 …`), no longer an axios error with `error.response`. `uploadScript` no longer writes a `temp_script.js` into the working directory.
 - Environment encryption uses `@noble/curves` instead of `elliptic`. Output is byte-identical (pinned by fixtures), and keys stored by earlier versions keep working.
 - `@polkadot/api`, `api-augment`, `types` and `types-codec` peers accept `^16.1.2 || ^17.0.0`.
 - Requires Node.js 20 or newer (`engines`).
