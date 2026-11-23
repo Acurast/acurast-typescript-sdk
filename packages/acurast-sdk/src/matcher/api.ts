@@ -1,4 +1,3 @@
-import axios from 'axios'
 import {
   buildBenchmarkMetricTriples,
   benchmarkTriplesToMatcherJson,
@@ -46,34 +45,31 @@ export async function jsonRpcCall<T>(
   params: Record<string, unknown>,
 ): Promise<ApiResult<T>> {
   try {
-    const response = await axios.post(
-      url,
-      {
-        jsonrpc: '2.0',
-        id: ++rpcId,
-        method,
-        params,
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: TIMEOUT_MS,
-      },
-    )
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+    if (!response.ok) {
+      return { ok: false, error: `Request failed with status code ${response.status}` }
+    }
+    const data = await response.json()
 
-    if (response.data.error) {
-      const err = response.data.error as { message?: string; code?: number }
+    if (data.error) {
+      const err = data.error as { message?: string; code?: number }
       const code = typeof err.code === 'number' ? err.code : undefined
       return {
         ok: false,
-        error: err.message ?? JSON.stringify(response.data.error),
+        error: err.message ?? JSON.stringify(data.error),
         ...(code !== undefined ? { jsonRpcCode: code } : {}),
       }
     }
 
-    return { ok: true, data: response.data.result as T }
+    return { ok: true, data: data.result as T }
   } catch (err: any) {
     const message =
-      err.code === 'ECONNABORTED'
+      err.name === 'TimeoutError'
         ? 'Matcher API request timed out'
         : (err.message ?? 'Unknown error')
     return { ok: false, error: message }

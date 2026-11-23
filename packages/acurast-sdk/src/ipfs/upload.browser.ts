@@ -1,18 +1,16 @@
 import type { IpfsUploadOptions } from './upload.js'
 
 // Re-export the shared option/type shape. `import type` is fully erased at
-// build time, so pulling it from the Node module here does NOT drag `fs` /
-// `form-data` into the browser bundle.
+// build time, so pulling it from the Node module here does NOT drag `fs`
+// into the browser bundle.
 export type { IpfsUploadOptions } from './upload.js'
 
 /**
  * Pin a deployment bundle (a `Blob`) to IPFS from the browser and return an
  * `ipfs://<cid>` URI.
  *
- * Browser-native counterpart of the Node `uploadScript`: uses `fetch` + the
- * browser `FormData`/`Blob` APIs instead of `axios` + `form-data` + `fs`. The
- * Pinata-style request shape (field name, `pinataOptions`, filename) is kept
- * identical so the same pinning endpoint works for both.
+ * Uses only `fetch` + `FormData`/`Blob`, so it runs in browsers and Node; the
+ * Node `uploadScript` wraps it.
  */
 export const uploadBlob = async (blob: Blob, options: IpfsUploadOptions): Promise<string> => {
   const form = new FormData()

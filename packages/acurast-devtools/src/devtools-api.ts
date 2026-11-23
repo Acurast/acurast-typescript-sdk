@@ -1,4 +1,3 @@
-import axios from 'axios'
 import Keyring from '@polkadot/keyring'
 import type { KeyringPair } from '@polkadot/keyring/types'
 import { u8aToHex, u8aToU8a } from '@polkadot/util'
@@ -143,25 +142,32 @@ export async function getDevtoolsViewKey(
     `DevTools view-key request: POST ${options.apiUrl}/v1/auth/view-key jobId=${jobId} address=${address}`,
   )
 
+  let status: number | undefined
+  let detail: string
   try {
-    const response = await axios.post<ViewKeyResponse>(
-      `${options.apiUrl}/v1/auth/view-key`,
-      { jobId, ...(options.network !== undefined ? { network: options.network } : {}) },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Signature': signature,
-          'X-Address': address,
-          'X-Timestamp': timestamp,
-        },
-        timeout: 10_000,
+    const response = await fetch(`${options.apiUrl}/v1/auth/view-key`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Signature': signature,
+        'X-Address': address,
+        'X-Timestamp': timestamp,
       },
-    )
-
-    return response.data
+      body: JSON.stringify({
+        jobId,
+        ...(options.network !== undefined ? { network: options.network } : {}),
+      }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (response.ok) {
+      return (await response.json()) as ViewKeyResponse
+    }
+    status = response.status
+    const body = await response.text()
+    detail = body || `Request failed with status code ${status}`
   } catch (error: any) {
-    const detail = error.response?.data ? JSON.stringify(error.response.data) : error.message
-    options.logger?.error(`DevTools view-key failed: ${error.response?.status} ${detail}`)
-    throw new Error(`DevTools API ${error.response?.status ?? 'error'}: ${detail}`)
+    detail = error.message
   }
+  options.logger?.error(`DevTools view-key failed: ${status} ${detail}`)
+  throw new Error(`DevTools API ${status ?? 'error'}: ${detail}`)
 }

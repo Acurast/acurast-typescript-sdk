@@ -1,6 +1,9 @@
 {
   "name": "@acurast/vps",
   "version": "0.2.1-beta.0",
+  "engines": {
+    "node": ">=20"
+  },
   "description": "VPS deployment helpers for Acurast \u2014 SSH-tunnel keypair generation, subdomain precomputation, and a pinned tunnel bundle that serves shell + optional HTTP on the same Let's Encrypt subdomain.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",

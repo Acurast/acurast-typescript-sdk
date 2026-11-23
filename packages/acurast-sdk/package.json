@@ -1,6 +1,9 @@
 {
   "name": "@acurast/sdk",
   "version": "1.6.0",
+  "engines": {
+    "node": ">=20"
+  },
   "description": "Programmatic SDK for interacting with the Acurast Cloud.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",
@@ -56,11 +59,10 @@
     "sdk"
   ],
   "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
     "adm-zip": "^0.6.1",
-    "axios": "^1.9.0",
     "bignumber.js": "^9.3.0",
-    "elliptic": "^6.6.1",
-    "form-data": "^4.0.2",
     "jszip": "^3.10.1",
     "zod": "^4.6.7"
   },
@@ -83,7 +85,6 @@
     "@polkadot/util": "^14.0.0",
     "@polkadot/util-crypto": "^14.0.0",
     "@polkadot/wasm-crypto": "^7.3.2",
-    "@types/elliptic": "^6.4.18",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.19.2",
     "jest": "~30.4.1",

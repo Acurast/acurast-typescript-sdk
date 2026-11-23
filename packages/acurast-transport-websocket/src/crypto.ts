@@ -1,6 +1,6 @@
-import { randomBytes } from '@stablelib/random'
-import { SHA256 } from '@stablelib/sha256'
-import { ec as EC } from 'elliptic'
+import { p256 } from '@noble/curves/p256'
+import { sha256 } from '@noble/hashes/sha2'
+import { randomBytes } from '@noble/hashes/utils'
 
 export class Crypto {
   public getRandomValues(size: number): Uint8Array {
@@ -8,26 +8,16 @@ export class Crypto {
   }
 
   public sha256(data: Uint8Array): Uint8Array {
-    const sha256 = new SHA256()
-    sha256.update(data)
-    return sha256.digest()
+    return sha256(data)
   }
 
   public compressP256PublicKey(publicKey: Uint8Array): Uint8Array {
-    const ec = new EC('p256')
-    const compressedPublicKey: string = ec.keyFromPublic(publicKey).getPublic(true, 'hex')
-
-    return Buffer.from(compressedPublicKey, 'hex')
+    return Buffer.from(p256.ProjectivePoint.fromHex(publicKey).toRawBytes(true))
   }
 
   public signP256(data: Uint8Array, secretKey: Uint8Array): Uint8Array {
-    const ec = new EC('p256')
-    const signature = ec.keyFromPrivate(secretKey).sign(data)
-
-    return Buffer.concat([
-      signature.r.toArrayLike(Buffer, 'be', 32),
-      signature.s.toArrayLike(Buffer, 'be', 32),
-    ])
+    // Same as elliptic before: `data` is signed as given (no prehash) and high-S is kept.
+    return Buffer.from(p256.sign(data, secretKey, { prehash: false, lowS: false }).toCompactRawBytes())
   }
 
   public senderId(publicKeyOrSenderId: Uint8Array): Uint8Array {

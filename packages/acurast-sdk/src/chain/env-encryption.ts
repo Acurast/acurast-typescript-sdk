@@ -1,5 +1,6 @@
-import pkg from 'elliptic'
-const { ec } = pkg
+import { p256 } from '@noble/curves/p256'
+import { secp256k1 } from '@noble/curves/secp256k1'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
 
 import * as crypto from 'crypto'
 
@@ -17,6 +18,8 @@ import { AcurastService } from './acurast-service.js'
 import type { AcurastSigner } from './signer.js'
 import type { KeyStore } from './key-store.js'
 import { InMemoryKeyStore } from './key-store.js'
+
+const CURVES = { p256, secp256k1 }
 
 export class JobEnvironmentService {
   private readonly acurastService: AcurastService
@@ -49,25 +52,32 @@ export class JobEnvironmentService {
     this.keyStore.setItem(this.keyStorageId('privateKey', curve), key)
   }
 
+  /** Loads this client's key pair for `curve`, creating and storing one on first use. */
+  private keyPair(curve: EncKeyCurve): { privateKey: Uint8Array; publicKeyHex: string } {
+    const stored = this.getPrivateKey(curve)
+    // Keys stored by the former elliptic implementation may lack leading zero bytes.
+    const privateKey = stored
+      ? hexToBytes(stored.padStart(64, '0'))
+      : CURVES[curve].utils.randomPrivateKey()
+    const publicKeyHex = bytesToHex(CURVES[curve].getPublicKey(privateKey, true))
+    if (!stored) {
+      this.setPrivateKey(bytesToHex(privateKey), curve)
+      this.setPublicKey(publicKeyHex, curve)
+    }
+    return { privateKey, publicKeyHex }
+  }
+
   public async generateSharedSecret(
     processorPublicKeyHex: string,
     curve: EncKeyCurve,
   ): Promise<string> {
-    const EC = new ec(curve)
-
-    let keyPair
-    const storedPrivateKeyHex = this.getPrivateKey(curve)
-    if (storedPrivateKeyHex) {
-      keyPair = EC.keyFromPrivate(storedPrivateKeyHex, 'hex')
-    } else {
-      keyPair = EC.genKeyPair()
-      this.setPrivateKey(keyPair.getPrivate('hex'), curve)
-      this.setPublicKey(keyPair.getPublic(true, 'hex'), curve)
-    }
-
-    const processorKey = EC.keyFromPublic(processorPublicKeyHex, 'hex')
-    const sharedSecret = keyPair.derive(processorKey.getPublic())
-    return Buffer.from(sharedSecret.toArray()).toString('hex')
+    const x = CURVES[curve]
+      .getSharedSecret(this.keyPair(curve).privateKey, processorPublicKeyHex, true)
+      .subarray(1)
+    // Wire format kept from elliptic (bn.js toArray()): the x-coordinate without leading zero bytes.
+    let start = 0
+    while (start < x.length - 1 && x[start] === 0) start++
+    return bytesToHex(x.subarray(start))
   }
 
   public async generateSharedKey(processorPublicKeyHex: string, curve: EncKeyCurve) {
@@ -77,19 +87,7 @@ export class JobEnvironmentService {
     )
     const sharedSecretSalt = Buffer.alloc(16)
 
-    const EC = new ec(curve)
-
-    let keyPair
-    const storedPrivateKeyHex = this.getPrivateKey(curve)
-    if (storedPrivateKeyHex) {
-      keyPair = EC.keyFromPrivate(storedPrivateKeyHex, 'hex')
-    } else {
-      keyPair = EC.genKeyPair()
-      this.setPrivateKey(keyPair.getPrivate('hex'), curve)
-      this.setPublicKey(keyPair.getPublic(true, 'hex'), curve)
-    }
-
-    const publicKey = Buffer.from(keyPair.getPublic(true, 'hex'), 'hex')
+    const publicKey = Buffer.from(this.keyPair(curve).publicKeyHex, 'hex')
     const processorPublicKey = Buffer.from(processorPublicKeyHex, 'hex')
 
     const publicKeys = [publicKey, processorPublicKey].sort((a, b) => {
