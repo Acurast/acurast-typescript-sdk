@@ -135,7 +135,7 @@ export const acurastProjectConfigSchema = z
       .optional(),
     restartPolicy: z.nativeEnum(RestartPolicy).optional(),
     resetExitCode: z
-      .number({ invalid_type_error: 'resetExitCode must be an integer between 1 and 125' })
+      .number({ error: 'resetExitCode must be an integer between 1 and 125' })
       .int('resetExitCode must be an integer between 1 and 125')
       .min(1, 'resetExitCode must be an integer between 1 and 125')
       .max(125, 'resetExitCode must be an integer between 1 and 125')

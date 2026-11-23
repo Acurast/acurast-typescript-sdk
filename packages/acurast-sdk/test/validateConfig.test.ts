@@ -588,9 +588,8 @@ describe('validateConfig', () => {
       {
         code: 'invalid_type',
         expected: 'string',
-        received: 'undefined',
         path: ['projectName'],
-        message: 'Required',
+        message: 'Invalid input: expected string, received undefined',
       },
     ])
   })
