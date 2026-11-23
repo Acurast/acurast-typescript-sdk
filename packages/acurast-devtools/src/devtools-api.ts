@@ -159,10 +159,10 @@ export async function getDevtoolsViewKey(
       }),
       signal: AbortSignal.timeout(10_000),
     })
+    status = response.status
     if (response.ok) {
       return (await response.json()) as ViewKeyResponse
     }
-    status = response.status
     const body = await response.text()
     detail = body || `Request failed with status code ${status}`
   } catch (error: any) {

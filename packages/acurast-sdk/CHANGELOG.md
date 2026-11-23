@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0
+
+### Changed
+
+- **zod 4** — `validateConfig()` notes keep their shape minus the `received` field, and the message texts follow zod 4 (e.g. `Required` is now `Invalid input: expected string, received undefined`). Code that compares note messages needs an update.
+- HTTP calls (IPFS upload, matcher API) use the built-in `fetch` instead of `axios` and `form-data`. `uploadScript` no longer writes a `temp_script.js` into the working directory.
+- Environment encryption uses `@noble/curves` instead of `elliptic`. Output is byte-identical (pinned by fixtures), and keys stored by earlier versions keep working.
+- `@polkadot/api`, `api-augment`, `types` and `types-codec` peers accept `^16.1.2 || ^17.0.0`.
+- Requires Node.js 20 or newer (`engines`).
+
 ## 1.6.0
 
 ### Added

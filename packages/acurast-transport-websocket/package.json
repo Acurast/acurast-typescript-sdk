@@ -1,6 +1,6 @@
 {
   "name": "@acurast/transport-websocket",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "node": ">=20"
   },
@@ -13,6 +13,9 @@
     "import": "./dist/esm/index.node.js",
     "require": "./dist/cjs/index.node.js"
   },
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },

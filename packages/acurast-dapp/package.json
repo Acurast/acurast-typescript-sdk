@@ -1,12 +1,15 @@
 {
   "name": "@acurast/dapp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "node": ">=20"
   },
   "deprecated": "This package is deprecated and no longer maintained. Please migrate to @acurast/sdk.",
   "author": "Papers AG <contact@papers.ch> (https://papers.ch)",
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -21,7 +24,7 @@
     "test:ci": "true"
   },
   "dependencies": {
-    "@acurast/transport-websocket": "^1.0.1",
+    "@acurast/transport-websocket": "^1.0.2",
     "buffer": "^6.0.3"
   }
 }

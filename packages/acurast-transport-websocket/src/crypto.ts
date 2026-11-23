@@ -17,7 +17,9 @@ export class Crypto {
 
   public signP256(data: Uint8Array, secretKey: Uint8Array): Uint8Array {
     // Same as elliptic before: `data` is signed as given (no prehash) and high-S is kept.
-    return Buffer.from(p256.sign(data, secretKey, { prehash: false, lowS: false }).toCompactRawBytes())
+    return Buffer.from(
+      p256.sign(data, secretKey, { prehash: false, lowS: false }).toCompactRawBytes(),
+    )
   }
 
   public senderId(publicKeyOrSenderId: Uint8Array): Uint8Array {
